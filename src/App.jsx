@@ -234,7 +234,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
       <div style={{ margin: "24px 0 4px" }}>
         <video
           key={today.file}
-          src={`/videos/${encodeURIComponent(today.file)}`}
+          src={`https://pub-e0caa3896f9841198f09ad2d1a154b43.r2.dev/${encodeURIComponent(today.file)}`}
           controls
           playsInline
           style={{ background: "#000", width: "100%", aspectRatio: "16/9", display: "block" }}
