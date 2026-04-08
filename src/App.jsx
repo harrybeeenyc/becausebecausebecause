@@ -143,6 +143,28 @@ function Login({ onLogin, onSignup }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [name, setName] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = () => {
+    setError("");
+    if (!email.trim() || !pass.trim()) { setError("please enter email and password."); return; }
+    try {
+      const users = JSON.parse(localStorage.getItem("bbb_users") || "{}");
+      if (mode === "login") {
+        const u = users[email.trim().toLowerCase()];
+        if (!u || u.pass !== pass) { setError("incorrect email or password."); return; }
+        onLogin(u.email, u.name);
+      } else {
+        const key = email.trim().toLowerCase();
+        if (users[key]) { setError("account already exists. try logging in."); return; }
+        users[key] = { email: email.trim(), name: name || "friend", pass };
+        localStorage.setItem("bbb_users", JSON.stringify(users));
+        onSignup(name || "friend", email.trim());
+      }
+    } catch (e) {
+      setError("something went wrong. try again.");
+    }
+  };
 
   return (
     <div style={{ fontFamily: font, maxWidth: 480, margin: "24px auto 48px", padding: "0 16px" }}>
@@ -168,9 +190,10 @@ function Login({ onLogin, onSignup }) {
         <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>password:</label>
         <input type="password" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={pass} onChange={(e) => setPass(e.target.value)} />
       </div>
-      <button onClick={() => mode === "login" ? onLogin(email) : onSignup(name || "friend", email)} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>
+      <button onClick={handleSubmit} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>
         {mode === "login" ? "log in" : "create account"}
       </button>
+      {error && <p style={{ fontSize: 13, color: "#c00", marginTop: 12 }}>{error}</p>}
     </div>
   );
 }
@@ -365,7 +388,7 @@ export default function App() {
 
   const logout = () => { setUser(null); setPage("daily"); };
 
-  if (!user) return <Login onLogin={(email) => setUser({ email })} onSignup={(name, email) => setUser({ name, email })} />;
+  if (!user) return <Login onLogin={(email, name) => setUser({ email, name })} onSignup={(name, email) => setUser({ name, email })} />;
   if (page === "journal") return <Journal savedNotes={savedNotes} onNavigate={setPage} onLogout={logout} />;
   if (page === "archive") return <Archive onNavigate={setPage} onLogout={logout} />;
   if (page === "donate") return <Donate onNavigate={setPage} onLogout={logout} />;
