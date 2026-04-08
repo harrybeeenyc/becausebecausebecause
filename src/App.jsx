@@ -136,7 +136,7 @@ function getTodayContent() {
 }
 
 const font = "Courier New, Courier, monospace";
-const link = { background: "none", border: "none", fontFamily: font, fontSize: 14, color: "#0000EE", textDecoration: "underline", cursor: "pointer", padding: 0 };
+const link = { background: "none", border: "none", fontFamily: font, fontSize: 15, color: "#0000EE", textDecoration: "underline", cursor: "pointer", padding: "4px 2px", minHeight: 32 };
 
 function Login({ onLogin, onSignup }) {
   const [mode, setMode] = useState("login");
@@ -145,7 +145,7 @@ function Login({ onLogin, onSignup }) {
   const [name, setName] = useState("");
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 480, margin: "40px auto", padding: "0 16px" }}>
+    <div style={{ fontFamily: font, maxWidth: 480, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
       <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 24 }}>a daily reflection practice</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
@@ -157,16 +157,16 @@ function Login({ onLogin, onSignup }) {
       {mode === "signup" && (
         <div style={{ marginBottom: 8 }}>
           <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>name:</label>
-          <input style={{ fontFamily: font, fontSize: 14, padding: "4px 6px", width: 240, border: "1px solid #999" }} value={name} onChange={(e) => setName(e.target.value)} />
+          <input style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
       )}
       <div style={{ marginBottom: 8 }}>
         <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>email:</label>
-        <input type="email" style={{ fontFamily: font, fontSize: 14, padding: "4px 6px", width: 240, border: "1px solid #999" }} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="email" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>password:</label>
-        <input type="password" style={{ fontFamily: font, fontSize: 14, padding: "4px 6px", width: 240, border: "1px solid #999" }} value={pass} onChange={(e) => setPass(e.target.value)} />
+        <input type="password" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={pass} onChange={(e) => setPass(e.target.value)} />
       </div>
       <button onClick={() => mode === "login" ? onLogin(email) : onSignup(name || "friend", email)} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>
         {mode === "login" ? "log in" : "create account"}
@@ -177,11 +177,11 @@ function Login({ onLogin, onSignup }) {
 
 function Nav({ current, onNavigate, onLogout }) {
   return (
-    <div style={{ fontSize: 14, marginBottom: 16 }}>
-      {current !== "daily" && <><button style={link} onClick={() => onNavigate("daily")}>today</button>{" | "}</>}
-      {current !== "journal" && <><button style={link} onClick={() => onNavigate("journal")}>journal</button>{" | "}</>}
-      {current !== "archive" && <><button style={link} onClick={() => onNavigate("archive")}>archive</button>{" | "}</>}
-      {current !== "donate" && <><button style={link} onClick={() => onNavigate("donate")}>donate</button>{" | "}</>}
+    <div style={{ fontSize: 14, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: "4px 8px", alignItems: "center" }}>
+      {current !== "daily" && <><button style={link} onClick={() => onNavigate("daily")}>today</button><span style={{ color: "#ccc" }}>|</span></>}
+      {current !== "journal" && <><button style={link} onClick={() => onNavigate("journal")}>journal</button><span style={{ color: "#ccc" }}>|</span></>}
+      {current !== "archive" && <><button style={link} onClick={() => onNavigate("archive")}>archive</button><span style={{ color: "#ccc" }}>|</span></>}
+      {current !== "donate" && <><button style={link} onClick={() => onNavigate("donate")}>donate</button><span style={{ color: "#ccc" }}>|</span></>}
       <button style={link} onClick={onLogout}>log out</button>
     </div>
   );
@@ -217,7 +217,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   };
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "40px auto", padding: "0 16px" }}>
+    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="daily" onNavigate={onNavigate} onLogout={onLogout} />
@@ -237,7 +237,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
           src={`https://pub-e0caa3896f9841198f09ad2d1a154b43.r2.dev/${encodeURIComponent(today.file)}`}
           controls
           playsInline
-          style={{ background: "#000", width: "100%", aspectRatio: "16/9", display: "block" }}
+          style={{ background: "#000", width: "100%", height: "auto", maxHeight: "70vh", objectFit: "contain", display: "block" }}
         />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
           <p style={{ fontSize: 12, color: "#666", margin: 0 }}>watch, then write.</p>
@@ -263,7 +263,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
 
 function Journal({ savedNotes, onNavigate, onLogout }) {
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "40px auto", padding: "0 16px" }}>
+    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="journal" onNavigate={onNavigate} onLogout={onLogout} />
@@ -286,7 +286,7 @@ function Journal({ savedNotes, onNavigate, onLogout }) {
 
 function Archive({ onNavigate, onLogout }) {
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "40px auto", padding: "0 16px" }}>
+    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="archive" onNavigate={onNavigate} onLogout={onLogout} />
@@ -322,7 +322,7 @@ function Donate({ onNavigate, onLogout }) {
   const [thanked, setThanked] = useState(false);
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "40px auto", padding: "0 16px" }}>
+    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="donate" onNavigate={onNavigate} onLogout={onLogout} />
