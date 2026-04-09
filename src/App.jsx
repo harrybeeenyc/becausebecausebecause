@@ -211,6 +211,26 @@ function Login({ onLogin }) {
   );
 }
 
+function Nav({ current, onNavigate, onLogout }) {
+  const items = ["daily", "journal", "archive", "donate"];
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontFamily: "monospace", fontSize: 13 }}>
+      <div style={{ display: "flex", gap: 16 }}>
+        {items.map(item => (
+          <span
+            key={item}
+            onClick={() => onNavigate(item)}
+            style={{ cursor: "pointer", textDecoration: current === item ? "underline" : "none", opacity: current === item ? 1 : 0.5 }}
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+      <span onClick={onLogout} style={{ cursor: "pointer", opacity: 0.5 }}>logout</span>
+    </div>
+  );
+}
+
 function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   const today = useMemo(getTodayContent, []);
   const [playing, setPlaying] = useState(false);
