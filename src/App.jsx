@@ -1,4 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+
+// Supabase config
+const SUPABASE_URL = "https://bptmguzronuleohgprlt.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwdG1ndXpyb251bGVvaGdwcmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDg4MTQsImV4cCI6MjA5MTMyNDgxNH0.oz_iigpjBAWX2S19DP4sl3uAjfDzAbA8jNCxOabmfbI";
+
+const sb = (path, opts = {}) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  ...opts,
+  headers: {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    Prefer: opts.method === "POST" ? "return=representation" : (opts.method === "PATCH" ? "return=representation" : ""),
+    ...opts.headers,
+  },
+}).then(r => r.ok ? r.json() : r.text().then(t => { throw new Error(t); }));
 
 // ═══════════════════════════════════════════════════════════════
 // BECAUSE BECAUSE BECAUSE — Daily Consciousness & Reflection App
@@ -141,29 +156,36 @@ const link = { background: "none", border: "none", fontFamily: font, fontSize: 1
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [step, setStep] = useState("email"); // "email" or "name"
+  const [step, setStep] = useState("email");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
     if (!email.trim()) { setError("please enter your email."); return; }
-    // Check if returning user
-    const users = JSON.parse(localStorage.getItem("bbb_users") || "{}");
     const key = email.trim().toLowerCase();
-    if (step === "email") {
-      if (users[key]) {
-        // Returning user - log them in directly
-        onLogin(users[key].email, users[key].name);
+    setLoading(true);
+    try {
+      const existing = await sb(`profiles?email=eq.${encodeURIComponent(key)}&select=*`);
+      if (step === "email") {
+        if (existing.length > 0) {
+          onLogin(existing[0].email, existing[0].name);
+        } else {
+          setStep("name");
+          setLoading(false);
+        }
       } else {
-        // New user - ask for name
-        setStep("name");
+        if (!name.trim()) { setError("please enter your name."); setLoading(false); return; }
+        const created = await sb("profiles", {
+          method: "POST",
+          body: JSON.stringify({ email: key, name: name.trim() }),
+        });
+        onLogin(created[0].email, created[0].name);
       }
-    } else {
-      // Signing up with name
-      if (!name.trim()) { setError("please enter your name."); return; }
-      users[key] = { email: email.trim(), name: name.trim() };
-      localStorage.setItem("bbb_users", JSON.stringify(users));
-      onLogin(email.trim(), name.trim());
+    } catch (e) {
+      console.error("Login error:", e);
+      setError("something went wrong. try again.");
+      setLoading(false);
     }
   };
 
@@ -180,22 +202,26 @@ function Login({ onLogin }) {
       {step === "name" && <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontFamily: font }}>your name:</label>
         <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "8px 10px", fontFamily: font, fontSize: 16, border: "1px solid #ccc", borderRadius: 4, boxSizing: "border-box" }} />
-        <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>first time here — what should we call you?</p>
+        <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>first time here \u2014 what should we call you?</p>
       </div>}
-      <button onClick={handleSubmit} style={{ width: "100%", padding: "10px", fontFamily: font, fontSize: 15, background: "#000", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", minHeight: 44 }}>
-        {step === "email" ? "continue" : "get started"}
+      <button onClick={handleSubmit} disabled={loading} style={{ width: "100%", padding: "10px", fontFamily: font, fontSize: 15, background: "#000", color: "#fff", border: "none", borderRadius: 4, cursor: loading ? "wait" : "pointer", minHeight: 44, opacity: loading ? 0.6 : 1 }}>
+        {loading ? "..." : step === "email" ? "continue" : "get started"}
       </button>
     </div>
   );
 }
+
 function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   const today = useMemo(getTodayContent, []);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [shared, setShared] = useState("");
 
-  const handleSave = () => {
-    if (notes.trim()) { onSave(today); setSaved(true); setTimeout(() => setSaved(false), 2000); }
+  const handleSave = async () => {
+    if (notes.trim()) {
+      try { await onSave(today); setSaved(true); setTimeout(() => setSaved(false), 2000); }
+      catch (e) { /* error handled in parent */ }
+    }
   };
 
   const handleShare = async () => {
@@ -262,17 +288,19 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   );
 }
 
-function Journal({ savedNotes, onNavigate, onLogout }) {
+function Journal({ savedNotes, loading, onNavigate, onLogout }) {
   return (
     <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="journal" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 16px" }}>your journal</h1>
-      {savedNotes.length === 0
+      {loading
+        ? <p style={{ fontSize: 14, color: "#666" }}>loading your entries...</p>
+        : savedNotes.length === 0
         ? <p style={{ fontSize: 14, color: "#666" }}>no entries yet. <button style={link} onClick={() => onNavigate("daily")}>go to today's reflection</button>.</p>
         : savedNotes.map((entry, i) => (
-          <div key={i} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #eee" }}>
+          <div key={entry.id || i} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #eee" }}>
             <p style={{ fontSize: 12, color: "#999", margin: "0 0 2px" }}>{entry.date}</p>
             <p style={{ fontSize: 13, color: "#666", margin: "0 0 4px" }}>{entry.person} — {entry.title}</p>
             <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{entry.text}</p>
@@ -358,19 +386,57 @@ export default function App() {
   const [page, setPage] = useState("daily");
   const [notes, setNotes] = useState("");
   const [savedNotes, setSavedNotes] = useState([]);
+  const [loadingEntries, setLoadingEntries] = useState(false);
 
-  const handleSave = (today) => {
-    if (notes.trim()) {
-      setSavedNotes((prev) => [{ date: today.dateStr, person: today.person, title: today.title, text: notes.trim() }, ...prev]);
+  useEffect(() => {
+    if (!user?.email) return;
+    setLoadingEntries(true);
+    sb(`journal_entries?user_email=eq.${encodeURIComponent(user.email)}&order=entry_date.desc,created_at.desc&select=*`)
+      .then(entries => {
+        setSavedNotes(entries.map(e => ({
+          id: e.id,
+          date: e.entry_date,
+          person: e.prompt ? e.prompt.split(" \u2014 ")[0] : "",
+          title: e.prompt ? e.prompt.split(" \u2014 ")[1] : "",
+          text: e.entry,
+        })));
+      })
+      .catch(err => console.error("Failed to load entries:", err))
+      .finally(() => setLoadingEntries(false));
+  }, [user?.email]);
+
+  const handleSave = async (today) => {
+    if (!notes.trim() || !user?.email) return;
+    const entry = {
+      user_email: user.email,
+      entry_date: new Date().toISOString().slice(0, 10),
+      prompt: `${today.person} \u2014 ${today.title}`,
+      entry: notes.trim(),
+    };
+    try {
+      const created = await sb("journal_entries", {
+        method: "POST",
+        body: JSON.stringify(entry),
+      });
+      setSavedNotes(prev => [{
+        id: created[0].id,
+        date: created[0].entry_date,
+        person: today.person,
+        title: today.title,
+        text: created[0].entry,
+      }, ...prev]);
       setNotes("");
+    } catch (err) {
+      console.error("Failed to save entry:", err);
+      alert("Failed to save. Please try again.");
     }
   };
 
   const loginUser = (u) => { setUser(u); localStorage.setItem("bbb_session", JSON.stringify(u)); };
-  const logout = () => { setUser(null); localStorage.removeItem("bbb_session"); setPage("daily"); };
+  const logout = () => { setUser(null); setSavedNotes([]); localStorage.removeItem("bbb_session"); setPage("daily"); };
 
   if (!user) return <Login onLogin={(email, name) => loginUser({ email, name })} />;
-  if (page === "journal") return <Journal savedNotes={savedNotes} onNavigate={setPage} onLogout={logout} />;
+  if (page === "journal") return <Journal savedNotes={savedNotes} loading={loadingEntries} onNavigate={setPage} onLogout={logout} />;
   if (page === "archive") return <Archive onNavigate={setPage} onLogout={logout} />;
   if (page === "donate") return <Donate onNavigate={setPage} onLogout={logout} />;
   return <Daily notes={notes} setNotes={setNotes} onSave={handleSave} onNavigate={setPage} onLogout={logout} />;
