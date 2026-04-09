@@ -147,19 +147,28 @@ function Login({ onLogin, onSignup }) {
 
   const handleSubmit = () => {
     setError("");
-    if (!email.trim() || !pass.trim()) { setError("please enter email and password."); return; }
+    if (mode !== "reset" && (!email.trim() || !pass.trim())) { setError("please enter email and password."); return; }
     try {
       const users = JSON.parse(localStorage.getItem("bbb_users") || "{}");
+      const key = email.trim().toLowerCase();
       if (mode === "login") {
-        const u = users[email.trim().toLowerCase()];
-        if (!u || u.pass !== pass) { setError("incorrect email or password."); return; }
+        const u = users[key];
+        if (!u || u.pass !== pass) { setError("incorrect email or password. tap 'forgot password?' to reset."); return; }
         onLogin(u.email, u.name);
-      } else {
-        const key = email.trim().toLowerCase();
+      } else if (mode === "signup") {
         if (users[key]) { setError("account already exists. try logging in."); return; }
         users[key] = { email: email.trim(), name: name || "friend", pass };
         localStorage.setItem("bbb_users", JSON.stringify(users));
         onSignup(name || "friend", email.trim());
+      } else if (mode === "reset") {
+        if (!email.trim() || !pass.trim()) { setError("enter your email and a new password."); return; }
+        const existing = users[key];
+        users[key] = { email: email.trim(), name: existing?.name || name || "friend", pass };
+        localStorage.setItem("bbb_users", JSON.stringify(users));
+        setError("");
+        setMode("login");
+        setPass("");
+        alert("password reset. log in with your new password.");
       }
     } catch (e) {
       setError("something went wrong. try again.");
@@ -172,9 +181,11 @@ function Login({ onLogin, onSignup }) {
       <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 24 }}>a daily reflection practice</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
       <p style={{ fontSize: 14, marginBottom: 16 }}>
-        <button onClick={() => setMode("login")} style={{ ...link, fontWeight: mode === "login" ? "bold" : "normal" }}>log in</button>
+        <button onClick={() => { setMode("login"); setError(""); }} style={{ ...link, fontWeight: mode === "login" ? "bold" : "normal" }}>log in</button>
         {" | "}
-        <button onClick={() => setMode("signup")} style={{ ...link, fontWeight: mode === "signup" ? "bold" : "normal" }}>create account</button>
+        <button onClick={() => { setMode("signup"); setError(""); }} style={{ ...link, fontWeight: mode === "signup" ? "bold" : "normal" }}>create account</button>
+        {" | "}
+        <button onClick={() => { setMode("reset"); setError(""); }} style={{ ...link, fontWeight: mode === "reset" ? "bold" : "normal" }}>forgot password?</button>
       </p>
       {mode === "signup" && (
         <div style={{ marginBottom: 8 }}>
@@ -187,11 +198,11 @@ function Login({ onLogin, onSignup }) {
         <input type="email" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
       <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>password:</label>
+        <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>{mode === "reset" ? "new password:" : "password:"}</label>
         <input type="password" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={pass} onChange={(e) => setPass(e.target.value)} />
       </div>
       <button onClick={handleSubmit} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>
-        {mode === "login" ? "log in" : "create account"}
+        {mode === "login" ? "log in" : mode === "signup" ? "create account" : "reset password"}
       </button>
       {error && <p style={{ fontSize: 13, color: "#c00", marginTop: 12 }}>{error}</p>}
     </div>
