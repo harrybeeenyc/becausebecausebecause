@@ -138,89 +138,56 @@ function getTodayContent() {
 const font = "Courier New, Courier, monospace";
 const link = { background: "none", border: "none", fontFamily: font, fontSize: 15, color: "#0000EE", textDecoration: "underline", cursor: "pointer", padding: "4px 2px", minHeight: 32 };
 
-function Login({ onLogin, onSignup }) {
-  const [mode, setMode] = useState("login");
+function Login({ onLogin }) {
   const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
   const [name, setName] = useState("");
+  const [step, setStep] = useState("email"); // "email" or "name"
   const [error, setError] = useState("");
 
   const handleSubmit = () => {
     setError("");
-    if (mode !== "reset" && (!email.trim() || !pass.trim())) { setError("please enter email and password."); return; }
-    try {
-      const users = JSON.parse(localStorage.getItem("bbb_users") || "{}");
-      const key = email.trim().toLowerCase();
-      if (mode === "login") {
-        const u = users[key];
-        if (!u || u.pass !== pass) { setError("incorrect email or password. tap 'forgot password?' to reset."); return; }
-        onLogin(u.email, u.name);
-      } else if (mode === "signup") {
-        if (users[key]) { setError("account already exists. try logging in."); return; }
-        users[key] = { email: email.trim(), name: name || "friend", pass };
-        localStorage.setItem("bbb_users", JSON.stringify(users));
-        onSignup(name || "friend", email.trim());
-      } else if (mode === "reset") {
-        if (!email.trim() || !pass.trim()) { setError("enter your email and a new password."); return; }
-        const existing = users[key];
-        users[key] = { email: email.trim(), name: existing?.name || name || "friend", pass };
-        localStorage.setItem("bbb_users", JSON.stringify(users));
-        setError("");
-        setMode("login");
-        setPass("");
-        alert("password reset. log in with your new password.");
+    if (!email.trim()) { setError("please enter your email."); return; }
+    // Check if returning user
+    const users = JSON.parse(localStorage.getItem("bbb_users") || "{}");
+    const key = email.trim().toLowerCase();
+    if (step === "email") {
+      if (users[key]) {
+        // Returning user - log them in directly
+        onLogin(users[key].email, users[key].name);
+      } else {
+        // New user - ask for name
+        setStep("name");
       }
-    } catch (e) {
-      setError("something went wrong. try again.");
+    } else {
+      // Signing up with name
+      if (!name.trim()) { setError("please enter your name."); return; }
+      users[key] = { email: email.trim(), name: name.trim() };
+      localStorage.setItem("bbb_users", JSON.stringify(users));
+      onLogin(email.trim(), name.trim());
     }
   };
 
   return (
     <div style={{ fontFamily: font, maxWidth: 480, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause</h2>
       <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 24 }}>a daily reflection practice</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
-      <p style={{ fontSize: 14, marginBottom: 16 }}>
-        <button onClick={() => { setMode("login"); setError(""); }} style={{ ...link, fontWeight: mode === "login" ? "bold" : "normal" }}>log in</button>
-        {" | "}
-        <button onClick={() => { setMode("signup"); setError(""); }} style={{ ...link, fontWeight: mode === "signup" ? "bold" : "normal" }}>create account</button>
-        {" | "}
-        <button onClick={() => { setMode("reset"); setError(""); }} style={{ ...link, fontWeight: mode === "reset" ? "bold" : "normal" }}>forgot password?</button>
-      </p>
-      {mode === "signup" && (
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>name:</label>
-          <input style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-      )}
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>email:</label>
-        <input type="email" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={email} onChange={(e) => setEmail(e.target.value)} />
+      {error && <p style={{ color: "red", fontSize: 13 }}>{error}</p>}
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontFamily: font }}>email:</label>
+        <input value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "8px 10px", fontFamily: font, fontSize: 16, border: "1px solid #ccc", borderRadius: 4, boxSizing: "border-box" }} />
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>{mode === "reset" ? "new password:" : "password:"}</label>
-        <input type="password" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={pass} onChange={(e) => setPass(e.target.value)} />
-      </div>
-      <button onClick={handleSubmit} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>
-        {mode === "login" ? "log in" : mode === "signup" ? "create account" : "reset password"}
+      {step === "name" && <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontFamily: font }}>your name:</label>
+        <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "8px 10px", fontFamily: font, fontSize: 16, border: "1px solid #ccc", borderRadius: 4, boxSizing: "border-box" }} />
+        <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>first time here — what should we call you?</p>
+      </div>}
+      <button onClick={handleSubmit} style={{ width: "100%", padding: "10px", fontFamily: font, fontSize: 15, background: "#000", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", minHeight: 44 }}>
+        {step === "email" ? "continue" : "get started"}
       </button>
-      {error && <p style={{ fontSize: 13, color: "#c00", marginTop: 12 }}>{error}</p>}
     </div>
   );
 }
-
-function Nav({ current, onNavigate, onLogout }) {
-  return (
-    <div style={{ fontSize: 14, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: "4px 8px", alignItems: "center" }}>
-      {current !== "daily" && <><button style={link} onClick={() => onNavigate("daily")}>today</button><span style={{ color: "#ccc" }}>|</span></>}
-      {current !== "journal" && <><button style={link} onClick={() => onNavigate("journal")}>journal</button><span style={{ color: "#ccc" }}>|</span></>}
-      {current !== "archive" && <><button style={link} onClick={() => onNavigate("archive")}>archive</button><span style={{ color: "#ccc" }}>|</span></>}
-      {current !== "donate" && <><button style={link} onClick={() => onNavigate("donate")}>donate</button><span style={{ color: "#ccc" }}>|</span></>}
-      <button style={link} onClick={onLogout}>log out</button>
-    </div>
-  );
-}
-
 function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   const today = useMemo(getTodayContent, []);
   const [playing, setPlaying] = useState(false);
@@ -402,7 +369,7 @@ export default function App() {
   const loginUser = (u) => { setUser(u); localStorage.setItem("bbb_session", JSON.stringify(u)); };
   const logout = () => { setUser(null); localStorage.removeItem("bbb_session"); setPage("daily"); };
 
-  if (!user) return <Login onLogin={(email, name) => loginUser({ email, name })} onSignup={(name, email) => loginUser({ name, email })} />;
+  if (!user) return <Login onLogin={(email, name) => loginUser({ email, name })} />;
   if (page === "journal") return <Journal savedNotes={savedNotes} onNavigate={setPage} onLogout={logout} />;
   if (page === "archive") return <Archive onNavigate={setPage} onLogout={logout} />;
   if (page === "donate") return <Donate onNavigate={setPage} onLogout={logout} />;
