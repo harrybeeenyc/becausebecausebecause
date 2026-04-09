@@ -385,7 +385,9 @@ function Donate({ onNavigate, onLogout }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try { const s = localStorage.getItem("bbb_session"); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
   const [page, setPage] = useState("daily");
   const [notes, setNotes] = useState("");
   const [savedNotes, setSavedNotes] = useState([]);
@@ -397,9 +399,10 @@ export default function App() {
     }
   };
 
-  const logout = () => { setUser(null); setPage("daily"); };
+  const loginUser = (u) => { setUser(u); localStorage.setItem("bbb_session", JSON.stringify(u)); };
+  const logout = () => { setUser(null); localStorage.removeItem("bbb_session"); setPage("daily"); };
 
-  if (!user) return <Login onLogin={(email, name) => setUser({ email, name })} onSignup={(name, email) => setUser({ name, email })} />;
+  if (!user) return <Login onLogin={(email, name) => loginUser({ email, name })} onSignup={(name, email) => loginUser({ name, email })} />;
   if (page === "journal") return <Journal savedNotes={savedNotes} onNavigate={setPage} onLogout={logout} />;
   if (page === "archive") return <Archive onNavigate={setPage} onLogout={logout} />;
   if (page === "donate") return <Donate onNavigate={setPage} onLogout={logout} />;
