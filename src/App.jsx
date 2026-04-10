@@ -214,7 +214,7 @@ function Login({ onLogin }) {
   return (
     <div className="bbb-page" style={{ maxWidth: 540, margin: "60px auto", padding: "0 24px", fontFamily: "monospace" }}>
       <h1 style={{ fontSize: 20, fontWeight: "bold", margin: 0 }}>becausebecausebecause</h1>
-      <p style={{ fontSize: 13, margin: "2px 0 16px", opacity: 0.5 }}>a daily reflection practice</p>
+      <p style={{ fontSize: 13, margin: "2px 0 16px", opacity: 0.5 }}>a daily reflection practice, updated daily</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
       {error && <p style={{ color: "red", fontSize: 13 }}>{error}</p>}
       <label style={{ fontSize: 13 }}>email:</label>
@@ -222,7 +222,8 @@ function Login({ onLogin }) {
         style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
         onKeyDown={e => e.key === "Enter" && handleSubmit()} />
       {step === "password" && (<>
-        <label style={{ fontSize: 13 }}>{isNew ? "create password:" : "password:"}</label>
+        <label style={{ fontSize: 13 }}>{isNew ? "create a password:" : "password:"}</label>
+        <p style={{ fontSize: 11, opacity: 0.4, margin: "0 0 4px" }}>{isNew ? "first time here — create a password to get started" : "new here? just enter a password to create your account"}</p>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus
           style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
           onKeyDown={e => e.key === "Enter" && handleSubmit()} />
@@ -243,7 +244,7 @@ function Login({ onLogin }) {
 }
 
 function Nav({ current, onNavigate, onLogout }) {
-  const items = ["daily", "journal"];
+  const items = ["daily", "journal", "about"];
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontFamily: "monospace", fontSize: 13 }}>
       <div style={{ display: "flex", gap: 16 }}>
@@ -427,6 +428,28 @@ function Journal({ savedNotes, loading, onNavigate, onLogout }) {
   );
 }
 
+function About({ onNavigate, onLogout }) {
+  return (
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
+      <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
+      <Nav current="about" onNavigate={onNavigate} onLogout={onLogout} />
+      <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 16px" }}>about</h1>
+      <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
+        Before or after I meditate, I look for something outside the noise of my own mind. That's why I built Because Today — a daily space for reflection, shared with others.
+      </p>
+      <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
+        Each video lives for one day, and so does the conversation. I've always journaled the thoughts that surface, so I made a place to keep those reflections for whenever you need them.
+      </p>
+      <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
+        Questions or comments — <a href="mailto:harrybeeenyc@gmail.com" style={{ color: "#0000EE" }}>harrybeeenyc@gmail.com</a>
+      </p>
+      <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
+    </div>
+  );
+}
+
 function Archive({ onNavigate, onLogout }) {
   return (
     <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
@@ -551,6 +574,7 @@ export default function App() {
 
   if (!user) return <Login onLogin={(email, name) => loginUser({ email, name })} />;
   if (page === "journal") return <Journal savedNotes={savedNotes} loading={loadingEntries} onNavigate={setPage} onLogout={logout} />;
+  if (page === "about") return <About onNavigate={setPage} onLogout={logout} />;
   if (page === "archive") return <Archive onNavigate={setPage} onLogout={logout} />;
   if (page === "donate") return <Donate onNavigate={setPage} onLogout={logout} />;
   return <Daily user={user} notes={notes} setNotes={setNotes} onSave={handleSave} onNavigate={setPage} onLogout={logout} />;
