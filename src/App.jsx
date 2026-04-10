@@ -436,10 +436,10 @@ function About({ onNavigate, onLogout }) {
       <Nav current="about" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 16px" }}>about</h1>
       <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
-        Before or after I meditate, I look for something outside the noise of my own mind. That's why I built Because Today — a daily space for reflection, shared with others.
+        Before or after I meditate, I look for something outside the noise in my head. So, I built Because Today — a daily app for reflections.
       </p>
       <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
-        Each video lives for one day, and so does the conversation. I've always journaled the thoughts that surface, so I made a place to keep those reflections for whenever you need them.
+        Each video lives for one day, and so does the conversation. I also journal the thoughts that surface, so I made a place to keep those reflections for whenever you need them.
       </p>
       <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
         Questions or comments — <a href="mailto:harrybeeenyc@gmail.com" style={{ color: "#0000EE" }}>harrybeeenyc@gmail.com</a>
