@@ -1,4 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+
+// Supabase config
+const SUPABASE_URL = "https://bptmguzronuleohgprlt.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwdG1ndXpyb251bGVvaGdwcmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDg4MTQsImV4cCI6MjA5MTMyNDgxNH0.oz_iigpjBAWX2S19DP4sl3uAjfDzAbA8jNCxOabmfbI";
+
+const sb = (path, opts = {}) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  ...opts,
+  headers: {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    Prefer: opts.method === "POST" ? "return=representation" : (opts.method === "PATCH" ? "return=representation" : ""),
+    ...opts.headers,
+  },
+}).then(r => r.ok ? r.json() : r.text().then(t => { throw new Error(t); }));
 
 // ═══════════════════════════════════════════════════════════════
 // BECAUSE BECAUSE BECAUSE — Daily Consciousness & Reflection App
@@ -138,105 +153,166 @@ function getTodayContent() {
 const font = "Courier New, Courier, monospace";
 const link = { background: "none", border: "none", fontFamily: font, fontSize: 15, color: "#0000EE", textDecoration: "underline", cursor: "pointer", padding: "4px 2px", minHeight: 32 };
 
-function Login({ onLogin, onSignup }) {
-  const [mode, setMode] = useState("login");
+function Login({ onLogin }) {
   const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
+  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [step, setStep] = useState("email"); // email -> password -> (name if new)
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isNew, setIsNew] = useState(false);
 
-  const handleSubmit = () => {
+  const hashPw = async (pw) => {
+    const enc = new TextEncoder().encode(pw);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  };
+
+  const handleSubmit = async () => {
     setError("");
-    if (mode !== "reset" && (!email.trim() || !pass.trim())) { setError("please enter email and password."); return; }
+    if (step === "email") {
+      if (!email.trim()) { setError("please enter your email."); return; }
+      setStep("password");
+      return;
+    }
+    if (!password.trim()) { setError("please enter a password."); return; }
+    const key = email.trim().toLowerCase();
+    setLoading(true);
     try {
-      const users = JSON.parse(localStorage.getItem("bbb_users") || "{}");
-      const key = email.trim().toLowerCase();
-      if (mode === "login") {
-        const u = users[key];
-        if (!u || u.pass !== pass) { setError("incorrect email or password. tap 'forgot password?' to reset."); return; }
-        onLogin(u.email, u.name);
-      } else if (mode === "signup") {
-        if (users[key]) { setError("account already exists. try logging in."); return; }
-        users[key] = { email: email.trim(), name: name || "friend", pass };
-        localStorage.setItem("bbb_users", JSON.stringify(users));
-        onSignup(name || "friend", email.trim());
-      } else if (mode === "reset") {
-        if (!email.trim() || !pass.trim()) { setError("enter your email and a new password."); return; }
-        const existing = users[key];
-        users[key] = { email: email.trim(), name: existing?.name || name || "friend", pass };
-        localStorage.setItem("bbb_users", JSON.stringify(users));
-        setError("");
-        setMode("login");
-        setPass("");
-        alert("password reset. log in with your new password.");
+      const hashed = await hashPw(password);
+      const existing = await sb(`profiles?email=eq.${encodeURIComponent(key)}&select=*`);
+      if (existing.length > 0) {
+        // Existing user - check password
+        if (existing[0].password_hash && existing[0].password_hash !== hashed) {
+          setError("wrong password."); setLoading(false); return;
+        }
+        // If no password set yet, save it now
+        if (!existing[0].password_hash) {
+          await sb(`profiles?email=eq.${encodeURIComponent(key)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ password_hash: hashed }),
+          });
+        }
+        onLogin(existing[0].email, existing[0].name);
+      } else {
+        // New user
+        if (!isNew) { setIsNew(true); setLoading(false); return; }
+        if (!name.trim()) { setError("please enter your name."); setLoading(false); return; }
+        const created = await sb("profiles", {
+          method: "POST",
+          body: JSON.stringify({ email: key, name: name.trim(), password_hash: hashed }),
+        });
+        onLogin(created[0].email, created[0].name);
       }
     } catch (e) {
+      console.error("Login error:", e);
       setError("something went wrong. try again.");
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 480, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
-      <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 24 }}>a daily reflection practice</p>
+    <div className="bbb-page" style={{ maxWidth: 540, margin: "60px auto", padding: "0 24px", fontFamily: "monospace" }}>
+      <h1 style={{ fontSize: 20, fontWeight: "bold", margin: 0 }}>becausebecausebecause</h1>
+      <p style={{ fontSize: 13, margin: "2px 0 16px", opacity: 0.5 }}>a daily reflection practice</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
-      <p style={{ fontSize: 14, marginBottom: 16 }}>
-        <button onClick={() => { setMode("login"); setError(""); }} style={{ ...link, fontWeight: mode === "login" ? "bold" : "normal" }}>log in</button>
-        {" | "}
-        <button onClick={() => { setMode("signup"); setError(""); }} style={{ ...link, fontWeight: mode === "signup" ? "bold" : "normal" }}>create account</button>
-        {" | "}
-        <button onClick={() => { setMode("reset"); setError(""); }} style={{ ...link, fontWeight: mode === "reset" ? "bold" : "normal" }}>forgot password?</button>
-      </p>
-      {mode === "signup" && (
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>name:</label>
-          <input style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-      )}
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>email:</label>
-        <input type="email" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={email} onChange={(e) => setEmail(e.target.value)} />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 13, display: "block", marginBottom: 2 }}>{mode === "reset" ? "new password:" : "password:"}</label>
-        <input type="password" style={{ fontFamily: font, fontSize: 16, padding: "8px 10px", width: "100%", maxWidth: 320, border: "1px solid #999" }} value={pass} onChange={(e) => setPass(e.target.value)} />
-      </div>
-      <button onClick={handleSubmit} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>
-        {mode === "login" ? "log in" : mode === "signup" ? "create account" : "reset password"}
+      {error && <p style={{ color: "red", fontSize: 13 }}>{error}</p>}
+      <label style={{ fontSize: 13 }}>email:</label>
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={step !== "email"}
+        style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+        onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+      {step === "password" && (<>
+        <label style={{ fontSize: 13 }}>{isNew ? "create password:" : "password:"}</label>
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus
+          style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+      </>)}
+      {isNew && (<>
+        <label style={{ fontSize: 13 }}>your name:</label>
+        <input value={name} onChange={e => setName(e.target.value)} autoFocus
+          style={{ width: "100%", padding: 8, marginBottom: 4, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+        <p style={{ fontSize: 11, opacity: 0.4, margin: "0 0 8px" }}>first time here \u2014 what should we call you?</p>
+      </>)}
+      <button onClick={handleSubmit} disabled={loading}
+        style={{ width: "100%", padding: 10, background: "#000", color: "#fff", border: "none", cursor: "pointer", fontFamily: "monospace", fontSize: 14, marginTop: 4 }}>
+        {loading ? "..." : step === "email" ? "continue" : isNew ? "get started" : "log in"}
       </button>
-      {error && <p style={{ fontSize: 13, color: "#c00", marginTop: 12 }}>{error}</p>}
     </div>
   );
 }
 
 function Nav({ current, onNavigate, onLogout }) {
+  const items = ["daily", "journal"];
   return (
-    <div style={{ fontSize: 14, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: "4px 8px", alignItems: "center" }}>
-      {current !== "daily" && <><button style={link} onClick={() => onNavigate("daily")}>today</button><span style={{ color: "#ccc" }}>|</span></>}
-      {current !== "journal" && <><button style={link} onClick={() => onNavigate("journal")}>journal</button><span style={{ color: "#ccc" }}>|</span></>}
-      {current !== "archive" && <><button style={link} onClick={() => onNavigate("archive")}>archive</button><span style={{ color: "#ccc" }}>|</span></>}
-      {current !== "donate" && <><button style={link} onClick={() => onNavigate("donate")}>donate</button><span style={{ color: "#ccc" }}>|</span></>}
-      <button style={link} onClick={onLogout}>log out</button>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontFamily: "monospace", fontSize: 13 }}>
+      <div style={{ display: "flex", gap: 16 }}>
+        {items.map(item => (
+          <span
+            key={item}
+            onClick={() => onNavigate(item)}
+            style={{ cursor: "pointer", textDecoration: current === item ? "underline" : "none", opacity: current === item ? 1 : 0.5 }}
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+      <span onClick={onLogout} style={{ cursor: "pointer", opacity: 0.5 }}>logout</span>
     </div>
   );
 }
 
-function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
+function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   const today = useMemo(getTodayContent, []);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [shared, setShared] = useState("");
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
 
-  const handleSave = () => {
-    if (notes.trim()) { onSave(today); setSaved(true); setTimeout(() => setSaved(false), 2000); }
+  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  useEffect(() => {
+    sb(`comments?video_date=eq.${todayDate}&order=created_at.asc&select=*`)
+      .then(setComments)
+      .catch(err => console.error("Failed to load comments:", err));
+  }, [todayDate]);
+
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !user?.email) return;
+    setPostingComment(true);
+    try {
+      const created = await sb("comments", {
+        method: "POST",
+        body: JSON.stringify({
+          video_date: todayDate,
+          user_email: user.email,
+          user_name: user.name || user.email.split("@")[0],
+          comment: newComment.trim(),
+        }),
+      });
+      setComments(prev => [...prev, created[0]]);
+      setNewComment("");
+    } catch (err) {
+      console.error("Failed to post comment:", err);
+    }
+    setPostingComment(false);
+  };
+
+  const handleSave = async () => {
+    if (notes.trim()) {
+      try { await onSave(today); setSaved(true); setTimeout(() => setSaved(false), 2000); }
+      catch (e) { /* error handled in parent */ }
+    }
   };
 
   const handleShare = async () => {
-    const url = "https://becausebecausebecause.xyz";
-    const text = `becausebecausebecause.xyz — today: ${today.person}, "${today.title}"`;
+    const url = "https://becausebecausebecause.today";
+    const text = `becausebecausebecause.today — today: ${today.person}, "${today.title}"`;
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title: "becausebecausebecause.xyz", text, url });
+        await navigator.share({ title: "becausebecausebecause.today", text, url });
         setShared("shared.");
       } else if (typeof navigator !== "undefined" && navigator.clipboard) {
         await navigator.clipboard.writeText(text);
@@ -251,8 +327,8 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   };
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="daily" onNavigate={onNavigate} onLogout={onLogout} />
 
@@ -280,6 +356,37 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
         {shared && <p style={{ fontSize: 12, color: "#666", margin: "2px 0 0", textAlign: "right" }}>{shared}</p>}
       </div>
 
+      <div style={{ margin: "24px 0", borderTop: "1px solid #eee", paddingTop: 16 }}>
+        <p style={{ fontSize: 14, fontWeight: "bold", marginBottom: 12 }}>comments</p>
+        {comments.length === 0 && <p style={{ fontSize: 13, color: "#999", margin: "0 0 12px" }}>no comments yet. be the first.</p>}
+        {comments.map((c) => (
+          <div key={c.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: "1px solid #f0f0f0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontSize: 13, fontWeight: "bold" }}>{c.user_name}</span>
+              <span style={{ fontSize: 11, color: "#999" }}>{new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.5, margin: "4px 0 0", whiteSpace: "pre-wrap" }}>{c.comment}</p>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <input
+            type="text"
+            placeholder="add a comment..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handlePostComment()}
+            style={{ fontFamily: font, fontSize: 13, flex: 1, padding: "6px 8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+          />
+          <button
+            onClick={handlePostComment}
+            disabled={postingComment || !newComment.trim()}
+            style={{ fontFamily: font, fontSize: 13, padding: "6px 12px", cursor: "pointer", background: "#eee", border: "1px solid #999", opacity: postingComment || !newComment.trim() ? 0.5 : 1 }}
+          >
+            {postingComment ? "..." : "post"}
+          </button>
+        </div>
+      </div>
+
       <div style={{ margin: "24px 0" }}>
         <p style={{ fontSize: 14, fontWeight: "bold", marginBottom: 6 }}>your reflection:</p>
         <textarea placeholder="what came up for you..." value={notes} onChange={(e) => setNotes(e.target.value)} style={{ fontFamily: font, fontSize: 14, width: "100%", minHeight: 120, padding: 8, border: "1px solid #999", boxSizing: "border-box", resize: "vertical", lineHeight: 1.6 }} />
@@ -290,22 +397,24 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
       </div>
 
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz — {VIDEOS.length} videos in rotation</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today — {VIDEOS.length} videos in rotation</p>
     </div>
   );
 }
 
-function Journal({ savedNotes, onNavigate, onLogout }) {
+function Journal({ savedNotes, loading, onNavigate, onLogout }) {
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="journal" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 16px" }}>your journal</h1>
-      {savedNotes.length === 0
+      {loading
+        ? <p style={{ fontSize: 14, color: "#666" }}>loading your entries...</p>
+        : savedNotes.length === 0
         ? <p style={{ fontSize: 14, color: "#666" }}>no entries yet. <button style={link} onClick={() => onNavigate("daily")}>go to today's reflection</button>.</p>
         : savedNotes.map((entry, i) => (
-          <div key={i} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #eee" }}>
+          <div key={entry.id || i} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #eee" }}>
             <p style={{ fontSize: 12, color: "#999", margin: "0 0 2px" }}>{entry.date}</p>
             <p style={{ fontSize: 13, color: "#666", margin: "0 0 4px" }}>{entry.person} — {entry.title}</p>
             <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{entry.text}</p>
@@ -313,15 +422,15 @@ function Journal({ savedNotes, onNavigate, onLogout }) {
         ))
       }
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
     </div>
   );
 }
 
 function Archive({ onNavigate, onLogout }) {
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="archive" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 18, fontWeight: "normal", margin: "24px 0 16px" }}>past reflections</h1>
@@ -346,7 +455,7 @@ function Archive({ onNavigate, onLogout }) {
         ));
       })()}
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
     </div>
   );
 }
@@ -356,8 +465,8 @@ function Donate({ onNavigate, onLogout }) {
   const [thanked, setThanked] = useState(false);
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="donate" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 8px" }}>donate</h1>
@@ -379,29 +488,70 @@ function Donate({ onNavigate, onLogout }) {
         <p style={{ fontSize: 14 }}>thank you. <span style={{ color: "#999" }}>(stripe integration goes here)</span></p>
       )}
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
     </div>
   );
 }
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try { const s = localStorage.getItem("bbb_session"); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
   const [page, setPage] = useState("daily");
   const [notes, setNotes] = useState("");
   const [savedNotes, setSavedNotes] = useState([]);
+  const [loadingEntries, setLoadingEntries] = useState(false);
 
-  const handleSave = (today) => {
-    if (notes.trim()) {
-      setSavedNotes((prev) => [{ date: today.dateStr, person: today.person, title: today.title, text: notes.trim() }, ...prev]);
+  useEffect(() => {
+    if (!user?.email) return;
+    setLoadingEntries(true);
+    sb(`journal_entries?user_email=eq.${encodeURIComponent(user.email)}&order=entry_date.desc,created_at.desc&select=*`)
+      .then(entries => {
+        setSavedNotes(entries.map(e => ({
+          id: e.id,
+          date: e.entry_date,
+          person: e.prompt ? e.prompt.split(" \u2014 ")[0] : "",
+          title: e.prompt ? e.prompt.split(" \u2014 ")[1] : "",
+          text: e.entry,
+        })));
+      })
+      .catch(err => console.error("Failed to load entries:", err))
+      .finally(() => setLoadingEntries(false));
+  }, [user?.email]);
+
+  const handleSave = async (today) => {
+    if (!notes.trim() || !user?.email) return;
+    const entry = {
+      user_email: user.email,
+      entry_date: new Date().toISOString().slice(0, 10),
+      prompt: `${today.person} \u2014 ${today.title}`,
+      entry: notes.trim(),
+    };
+    try {
+      const created = await sb("journal_entries", {
+        method: "POST",
+        body: JSON.stringify(entry),
+      });
+      setSavedNotes(prev => [{
+        id: created[0].id,
+        date: created[0].entry_date,
+        person: today.person,
+        title: today.title,
+        text: created[0].entry,
+      }, ...prev]);
       setNotes("");
+    } catch (err) {
+      console.error("Failed to save entry:", err);
+      alert("Failed to save. Please try again.");
     }
   };
 
-  const logout = () => { setUser(null); setPage("daily"); };
+  const loginUser = (u) => { setUser(u); localStorage.setItem("bbb_session", JSON.stringify(u)); };
+  const logout = () => { setUser(null); setSavedNotes([]); localStorage.removeItem("bbb_session"); setPage("daily"); };
 
-  if (!user) return <Login onLogin={(email, name) => setUser({ email, name })} onSignup={(name, email) => setUser({ name, email })} />;
-  if (page === "journal") return <Journal savedNotes={savedNotes} onNavigate={setPage} onLogout={logout} />;
+  if (!user) return <Login onLogin={(email, name) => loginUser({ email, name })} />;
+  if (page === "journal") return <Journal savedNotes={savedNotes} loading={loadingEntries} onNavigate={setPage} onLogout={logout} />;
   if (page === "archive") return <Archive onNavigate={setPage} onLogout={logout} />;
   if (page === "donate") return <Donate onNavigate={setPage} onLogout={logout} />;
-  return <Daily notes={notes} setNotes={setNotes} onSave={handleSave} onNavigate={setPage} onLogout={logout} />;
+  return <Daily user={user} notes={notes} setNotes={setNotes} onSave={handleSave} onNavigate={setPage} onLogout={logout} />;
 }
