@@ -222,7 +222,7 @@ function Login({ onLogin }) {
         style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
         onKeyDown={e => e.key === "Enter" && handleSubmit()} />
       {step === "password" && (<>
-        <label style={{ fontSize: 13 }}>password:</label>
+        <label style={{ fontSize: 13 }}>{isNew ? "create password:" : "password:"}</label>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus
           style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
           onKeyDown={e => e.key === "Enter" && handleSubmit()} />
