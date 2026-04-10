@@ -212,7 +212,7 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div style={{ maxWidth: 540, margin: "60px auto", padding: "0 24px", fontFamily: "monospace" }}>
+    <div className="bbb-page" style={{ maxWidth: 540, margin: "60px auto", padding: "0 24px", fontFamily: "monospace" }}>
       <h1 style={{ fontSize: 20, fontWeight: "bold", margin: 0 }}>becausebecausebecause</h1>
       <p style={{ fontSize: 13, margin: "2px 0 16px", opacity: 0.5 }}>a daily reflection practice</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
@@ -243,7 +243,7 @@ function Login({ onLogin }) {
 }
 
 function Nav({ current, onNavigate, onLogout }) {
-  const items = ["daily", "journal", "archive", "donate"];
+  const items = ["daily", "journal"];
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontFamily: "monospace", fontSize: 13 }}>
       <div style={{ display: "flex", gap: 16 }}>
@@ -295,7 +295,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   };
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="daily" onNavigate={onNavigate} onLogout={onLogout} />
@@ -341,7 +341,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
 
 function Journal({ savedNotes, loading, onNavigate, onLogout }) {
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="journal" onNavigate={onNavigate} onLogout={onLogout} />
@@ -366,7 +366,7 @@ function Journal({ savedNotes, loading, onNavigate, onLogout }) {
 
 function Archive({ onNavigate, onLogout }) {
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="archive" onNavigate={onNavigate} onLogout={onLogout} />
@@ -402,7 +402,7 @@ function Donate({ onNavigate, onLogout }) {
   const [thanked, setThanked] = useState(false);
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
       <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="donate" onNavigate={onNavigate} onLogout={onLogout} />
