@@ -155,30 +155,52 @@ const link = { background: "none", border: "none", fontFamily: font, fontSize: 1
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [step, setStep] = useState("email");
+  const [step, setStep] = useState("email"); // email -> password -> (name if new)
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isNew, setIsNew] = useState(false);
+
+  const hashPw = async (pw) => {
+    const enc = new TextEncoder().encode(pw);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  };
 
   const handleSubmit = async () => {
     setError("");
-    if (!email.trim()) { setError("please enter your email."); return; }
+    if (step === "email") {
+      if (!email.trim()) { setError("please enter your email."); return; }
+      setStep("password");
+      return;
+    }
+    if (!password.trim()) { setError("please enter a password."); return; }
     const key = email.trim().toLowerCase();
     setLoading(true);
     try {
+      const hashed = await hashPw(password);
       const existing = await sb(`profiles?email=eq.${encodeURIComponent(key)}&select=*`);
-      if (step === "email") {
-        if (existing.length > 0) {
-          onLogin(existing[0].email, existing[0].name);
-        } else {
-          setStep("name");
-          setLoading(false);
+      if (existing.length > 0) {
+        // Existing user - check password
+        if (existing[0].password_hash && existing[0].password_hash !== hashed) {
+          setError("wrong password."); setLoading(false); return;
         }
+        // If no password set yet, save it now
+        if (!existing[0].password_hash) {
+          await sb(`profiles?email=eq.${encodeURIComponent(key)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ password_hash: hashed }),
+          });
+        }
+        onLogin(existing[0].email, existing[0].name);
       } else {
+        // New user
+        if (!isNew) { setIsNew(true); setLoading(false); return; }
         if (!name.trim()) { setError("please enter your name."); setLoading(false); return; }
         const created = await sb("profiles", {
           method: "POST",
-          body: JSON.stringify({ email: key, name: name.trim() }),
+          body: JSON.stringify({ email: key, name: name.trim(), password_hash: hashed }),
         });
         onLogin(created[0].email, created[0].name);
       }
@@ -190,22 +212,31 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div style={{ fontFamily: font, maxWidth: 480, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause</h2>
-      <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 24 }}>a daily reflection practice</p>
+    <div style={{ maxWidth: 540, margin: "60px auto", padding: "0 24px", fontFamily: "monospace" }}>
+      <h1 style={{ fontSize: 20, fontWeight: "bold", margin: 0 }}>becausebecausebecause</h1>
+      <p style={{ fontSize: 13, margin: "2px 0 16px", opacity: 0.5 }}>a daily reflection practice</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
       {error && <p style={{ color: "red", fontSize: 13 }}>{error}</p>}
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontFamily: font }}>email:</label>
-        <input value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "8px 10px", fontFamily: font, fontSize: 16, border: "1px solid #ccc", borderRadius: 4, boxSizing: "border-box" }} />
-      </div>
-      {step === "name" && <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontFamily: font }}>your name:</label>
-        <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "8px 10px", fontFamily: font, fontSize: 16, border: "1px solid #ccc", borderRadius: 4, boxSizing: "border-box" }} />
-        <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>first time here \u2014 what should we call you?</p>
-      </div>}
-      <button onClick={handleSubmit} disabled={loading} style={{ width: "100%", padding: "10px", fontFamily: font, fontSize: 15, background: "#000", color: "#fff", border: "none", borderRadius: 4, cursor: loading ? "wait" : "pointer", minHeight: 44, opacity: loading ? 0.6 : 1 }}>
-        {loading ? "..." : step === "email" ? "continue" : "get started"}
+      <label style={{ fontSize: 13 }}>email:</label>
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={step !== "email"}
+        style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+        onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+      {step === "password" && (<>
+        <label style={{ fontSize: 13 }}>password:</label>
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus
+          style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+      </>)}
+      {isNew && (<>
+        <label style={{ fontSize: 13 }}>your name:</label>
+        <input value={name} onChange={e => setName(e.target.value)} autoFocus
+          style={{ width: "100%", padding: 8, marginBottom: 4, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+        <p style={{ fontSize: 11, opacity: 0.4, margin: "0 0 8px" }}>first time here \u2014 what should we call you?</p>
+      </>)}
+      <button onClick={handleSubmit} disabled={loading}
+        style={{ width: "100%", padding: 10, background: "#000", color: "#fff", border: "none", cursor: "pointer", fontFamily: "monospace", fontSize: 14, marginTop: 4 }}>
+        {loading ? "..." : step === "email" ? "continue" : isNew ? "get started" : "log in"}
       </button>
     </div>
   );
@@ -245,11 +276,11 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
   };
 
   const handleShare = async () => {
-    const url = "https://becausebecausebecause.xyz";
-    const text = `becausebecausebecause.xyz — today: ${today.person}, "${today.title}"`;
+    const url = "https://becausebecausebecause.today";
+    const text = `becausebecausebecause.today — today: ${today.person}, "${today.title}"`;
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title: "becausebecausebecause.xyz", text, url });
+        await navigator.share({ title: "becausebecausebecause.today", text, url });
         setShared("shared.");
       } else if (typeof navigator !== "undefined" && navigator.clipboard) {
         await navigator.clipboard.writeText(text);
@@ -265,7 +296,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
 
   return (
     <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="daily" onNavigate={onNavigate} onLogout={onLogout} />
 
@@ -303,7 +334,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
       </div>
 
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz — {VIDEOS.length} videos in rotation</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today — {VIDEOS.length} videos in rotation</p>
     </div>
   );
 }
@@ -311,7 +342,7 @@ function Daily({ notes, setNotes, onSave, onNavigate, onLogout }) {
 function Journal({ savedNotes, loading, onNavigate, onLogout }) {
   return (
     <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="journal" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 16px" }}>your journal</h1>
@@ -328,7 +359,7 @@ function Journal({ savedNotes, loading, onNavigate, onLogout }) {
         ))
       }
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
     </div>
   );
 }
@@ -336,7 +367,7 @@ function Journal({ savedNotes, loading, onNavigate, onLogout }) {
 function Archive({ onNavigate, onLogout }) {
   return (
     <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="archive" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 18, fontWeight: "normal", margin: "24px 0 16px" }}>past reflections</h1>
@@ -361,7 +392,7 @@ function Archive({ onNavigate, onLogout }) {
         ));
       })()}
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
     </div>
   );
 }
@@ -372,7 +403,7 @@ function Donate({ onNavigate, onLogout }) {
 
   return (
     <div style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.xyz</h2>
+      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="donate" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 8px" }}>donate</h1>
@@ -394,7 +425,7 @@ function Donate({ onNavigate, onLogout }) {
         <p style={{ fontSize: 14 }}>thank you. <span style={{ color: "#999" }}>(stripe integration goes here)</span></p>
       )}
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.xyz</p>
+      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
     </div>
   );
 }
