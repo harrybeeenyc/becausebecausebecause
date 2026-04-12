@@ -151,7 +151,7 @@ function getTodayContent() {
 }
 
 const font = "Courier New, Courier, monospace";
-const link = { background: "none", border: "none", fontFamily: font, fontSize: 15, color: "#0000EE", textDecoration: "underline", cursor: "pointer", padding: "4px 2px", minHeight: 32 };
+const link = { background: "none", border: "none", fontFamily: font, fontSize: 16, color: "#0000EE", textDecoration: "underline", cursor: "pointer", padding: "4px 2px", minHeight: 32 };
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -212,31 +212,31 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div className="bbb-page" style={{ maxWidth: 540, margin: "60px auto", padding: "0 24px", fontFamily: "monospace" }}>
-      <h1 style={{ fontSize: 20, fontWeight: "bold", margin: 0 }}>becausebecausebecause</h1>
-      <p style={{ fontSize: 13, margin: "2px 0 16px", opacity: 0.5 }}>a daily reflection practice, updated daily</p>
+    <div className="bbb-page" style={{ maxWidth: 540, margin: "60px auto", padding: "0 24px", fontFamily: "monospace", color: "#111" }}>
+      <h1 style={{ fontSize: 21, fontWeight: "bold", margin: 0 }}>becausebecausebecause</h1>
+      <p style={{ fontSize: 14, margin: "2px 0 16px", opacity: 0.5 }}>a daily reflection practice, updated daily</p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 16 }} />
-      {error && <p style={{ color: "red", fontSize: 13 }}>{error}</p>}
-      <label style={{ fontSize: 13 }}>email:</label>
+      {error && <p style={{ color: "red", fontSize: 14 }}>{error}</p>}
+      <label style={{ fontSize: 14 }}>email:</label>
       <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={step !== "email"}
-        style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+        style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 15, boxSizing: "border-box" }}
         onKeyDown={e => e.key === "Enter" && handleSubmit()} />
       {step === "password" && (<>
-        <label style={{ fontSize: 13 }}>{isNew ? "create a password:" : "password:"}</label>
-        <p style={{ fontSize: 11, opacity: 0.4, margin: "0 0 4px" }}>{isNew ? "first time here — create a password to get started" : "new here? just enter a password to create your account"}</p>
+        <label style={{ fontSize: 14 }}>{isNew ? "create a password:" : "password:"}</label>
+        <p style={{ fontSize: 12, opacity: 0.5, margin: "0 0 4px" }}>{isNew ? "first time here — create a password to get started" : "new here? just enter a password to create your account"}</p>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus
-          style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+          style={{ width: "100%", padding: 8, marginBottom: 8, fontFamily: "monospace", fontSize: 15, boxSizing: "border-box" }}
           onKeyDown={e => e.key === "Enter" && handleSubmit()} />
       </>)}
       {isNew && (<>
-        <label style={{ fontSize: 13 }}>your name:</label>
+        <label style={{ fontSize: 14 }}>your name:</label>
         <input value={name} onChange={e => setName(e.target.value)} autoFocus
-          style={{ width: "100%", padding: 8, marginBottom: 4, fontFamily: "monospace", fontSize: 14, boxSizing: "border-box" }}
+          style={{ width: "100%", padding: 8, marginBottom: 4, fontFamily: "monospace", fontSize: 15, boxSizing: "border-box" }}
           onKeyDown={e => e.key === "Enter" && handleSubmit()} />
-        <p style={{ fontSize: 11, opacity: 0.4, margin: "0 0 8px" }}>first time here \u2014 what should we call you?</p>
+        <p style={{ fontSize: 12, opacity: 0.5, margin: "0 0 8px" }}>first time here \u2014 what should we call you?</p>
       </>)}
       <button onClick={handleSubmit} disabled={loading}
-        style={{ width: "100%", padding: 10, background: "#000", color: "#fff", border: "none", cursor: "pointer", fontFamily: "monospace", fontSize: 14, marginTop: 4 }}>
+        style={{ width: "100%", padding: 10, background: "#000", color: "#fff", border: "none", cursor: "pointer", fontFamily: "monospace", fontSize: 15, marginTop: 4 }}>
         {loading ? "..." : step === "email" ? "continue" : isNew ? "get started" : "log in"}
       </button>
     </div>
@@ -246,7 +246,7 @@ function Login({ onLogin }) {
 function Nav({ current, onNavigate, onLogout }) {
   const items = ["daily", "journal", "about"];
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontFamily: "monospace", fontSize: 13 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontFamily: "monospace", fontSize: 14 }}>
       <div style={{ display: "flex", gap: 16 }}>
         {items.map(item => (
           <span
@@ -272,7 +272,10 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   const [newComment, setNewComment] = useState("");
   const [postingComment, setPostingComment] = useState(false);
 
-  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayDate = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }, []);
 
   useEffect(() => {
     sb(`comments?video_date=eq.${todayDate}&order=created_at.asc&select=*`)
@@ -328,18 +331,18 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   };
 
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+      <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="daily" onNavigate={onNavigate} onLogout={onLogout} />
 
-      <h1 style={{ fontSize: 18, fontWeight: "normal", margin: "24px 0 2px", lineHeight: 1.2 }}>{today.dateStr}</h1>
-      <p style={{ fontSize: 12, color: "#666", margin: "0 0 24px" }}>{today.context}</p>
+      <h1 style={{ fontSize: 19, fontWeight: "normal", margin: "24px 0 2px", lineHeight: 1.2 }}>{today.dateStr}</h1>
+      <p style={{ fontSize: 13, color: "#444", margin: "0 0 24px" }}>{today.context}</p>
 
-      <p style={{ fontSize: 12, color: "#999", margin: "0 0 4px" }}>featuring: {today.person}</p>
-      <h3 style={{ fontSize: 18, fontWeight: "bold", margin: "0 0 12px" }}>{today.title}</h3>
+      <p style={{ fontSize: 13, color: "#666", margin: "0 0 4px" }}>featuring: {today.person}</p>
+      <h3 style={{ fontSize: 19, fontWeight: "bold", margin: "0 0 12px" }}>{today.title}</h3>
       {today.lines.map((line, i) => (
-        <p key={i} style={{ fontSize: 15, lineHeight: 1.6, margin: "0 0 8px" }}>{line}</p>
+        <p key={i} style={{ fontSize: 16, lineHeight: 1.6, margin: "0 0 8px" }}>{line}</p>
       ))}
 
       <div style={{ margin: "24px 0 4px" }}>
@@ -351,22 +354,22 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
           style={{ background: "#000", width: "100%", height: "auto", maxHeight: "70vh", objectFit: "contain", display: "block" }}
         />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-          <p style={{ fontSize: 12, color: "#666", margin: 0 }}>watch, then write.</p>
+          <p style={{ fontSize: 13, color: "#444", margin: 0 }}>watch, then write.</p>
           <button onClick={handleShare} style={link}>share this page</button>
         </div>
-        {shared && <p style={{ fontSize: 12, color: "#666", margin: "2px 0 0", textAlign: "right" }}>{shared}</p>}
+        {shared && <p style={{ fontSize: 13, color: "#444", margin: "2px 0 0", textAlign: "right" }}>{shared}</p>}
       </div>
 
       <div style={{ margin: "24px 0", borderTop: "1px solid #eee", paddingTop: 16 }}>
-        <p style={{ fontSize: 14, fontWeight: "bold", marginBottom: 12 }}>comments</p>
-        {comments.length === 0 && <p style={{ fontSize: 13, color: "#999", margin: "0 0 12px" }}>no comments yet. be the first.</p>}
+        <p style={{ fontSize: 15, fontWeight: "bold", marginBottom: 12 }}>comments</p>
+        {comments.length === 0 && <p style={{ fontSize: 14, color: "#666", margin: "0 0 12px" }}>no comments yet. be the first.</p>}
         {comments.map((c) => (
           <div key={c.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: "1px solid #f0f0f0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span style={{ fontSize: 13, fontWeight: "bold" }}>{c.user_name}</span>
-              <span style={{ fontSize: 11, color: "#999" }}>{new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+              <span style={{ fontSize: 14, fontWeight: "bold" }}>{c.user_name}</span>
+              <span style={{ fontSize: 12, color: "#666" }}>{new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
             </div>
-            <p style={{ fontSize: 14, lineHeight: 1.5, margin: "4px 0 0", whiteSpace: "pre-wrap" }}>{c.comment}</p>
+            <p style={{ fontSize: 15, lineHeight: 1.5, margin: "4px 0 0", whiteSpace: "pre-wrap" }}>{c.comment}</p>
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -376,12 +379,12 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handlePostComment()}
-            style={{ fontFamily: font, fontSize: 13, flex: 1, padding: "6px 8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+            style={{ fontFamily: font, fontSize: 14, flex: 1, padding: "6px 8px", border: "1px solid #ccc", boxSizing: "border-box" }}
           />
           <button
             onClick={handlePostComment}
             disabled={postingComment || !newComment.trim()}
-            style={{ fontFamily: font, fontSize: 13, padding: "6px 12px", cursor: "pointer", background: "#eee", border: "1px solid #999", opacity: postingComment || !newComment.trim() ? 0.5 : 1 }}
+            style={{ fontFamily: font, fontSize: 14, padding: "6px 12px", cursor: "pointer", background: "#eee", border: "1px solid #999", opacity: postingComment || !newComment.trim() ? 0.5 : 1 }}
           >
             {postingComment ? "..." : "post"}
           </button>
@@ -389,74 +392,79 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
       </div>
 
       <div style={{ margin: "24px 0" }}>
-        <p style={{ fontSize: 14, fontWeight: "bold", marginBottom: 6 }}>your reflection:</p>
-        <textarea placeholder="what came up for you..." value={notes} onChange={(e) => setNotes(e.target.value)} style={{ fontFamily: font, fontSize: 14, width: "100%", minHeight: 120, padding: 8, border: "1px solid #999", boxSizing: "border-box", resize: "vertical", lineHeight: 1.6 }} />
+        <p style={{ fontSize: 15, fontWeight: "bold", marginBottom: 6 }}>your reflection:</p>
+        <textarea placeholder="what came up for you..." value={notes} onChange={(e) => setNotes(e.target.value)} style={{ fontFamily: font, fontSize: 15, width: "100%", minHeight: 120, padding: 8, border: "1px solid #999", boxSizing: "border-box", resize: "vertical", lineHeight: 1.6 }} />
         <div style={{ marginTop: 8 }}>
-          <button onClick={handleSave} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>save to journal</button>
-          {saved && <span style={{ fontSize: 13, color: "#666", marginLeft: 8 }}>saved.</span>}
+          <button onClick={handleSave} style={{ fontFamily: font, fontSize: 15, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>save to journal</button>
+          {saved && <span style={{ fontSize: 14, color: "#444", marginLeft: 8 }}>saved.</span>}
         </div>
       </div>
 
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today — {VIDEOS.length} videos in rotation</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <p style={{ fontSize: 12, color: "#666", margin: 0 }}>becausebecausebecause.today — {VIDEOS.length} videos in rotation</p>
+        {user?.email === "harrybeeenyc@gmail.com" && (
+          <span onClick={() => onNavigate("dashboard")} style={{ fontSize: 11, color: "#999", cursor: "pointer" }}>dashboard</span>
+        )}
+      </div>
     </div>
   );
 }
 
 function Journal({ savedNotes, loading, onNavigate, onLogout }) {
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+      <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="journal" onNavigate={onNavigate} onLogout={onLogout} />
-      <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 16px" }}>your journal</h1>
+      <h1 style={{ fontSize: 25, fontWeight: "normal", margin: "24px 0 16px" }}>your journal</h1>
       {loading
-        ? <p style={{ fontSize: 14, color: "#666" }}>loading your entries...</p>
+        ? <p style={{ fontSize: 15, color: "#444" }}>loading your entries...</p>
         : savedNotes.length === 0
-        ? <p style={{ fontSize: 14, color: "#666" }}>no entries yet. <button style={link} onClick={() => onNavigate("daily")}>go to today's reflection</button>.</p>
+        ? <p style={{ fontSize: 15, color: "#444" }}>no entries yet. <button style={link} onClick={() => onNavigate("daily")}>go to today's reflection</button>.</p>
         : savedNotes.map((entry, i) => (
           <div key={entry.id || i} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #eee" }}>
-            <p style={{ fontSize: 12, color: "#999", margin: "0 0 2px" }}>{entry.date}</p>
-            <p style={{ fontSize: 13, color: "#666", margin: "0 0 4px" }}>{entry.person} — {entry.title}</p>
-            <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{entry.text}</p>
+            <p style={{ fontSize: 13, color: "#666", margin: "0 0 2px" }}>{entry.date}</p>
+            <p style={{ fontSize: 14, color: "#444", margin: "0 0 4px" }}>{entry.person} — {entry.title}</p>
+            <p style={{ fontSize: 15, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{entry.text}</p>
           </div>
         ))
       }
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
+      <p style={{ fontSize: 12, color: "#666" }}>becausebecausebecause.today</p>
     </div>
   );
 }
 
 function About({ onNavigate, onLogout }) {
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+      <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="about" onNavigate={onNavigate} onLogout={onLogout} />
-      <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 16px" }}>about</h1>
-      <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
+      <h1 style={{ fontSize: 25, fontWeight: "normal", margin: "24px 0 16px" }}>about</h1>
+      <p style={{ fontSize: 16, lineHeight: 1.7, margin: "0 0 16px" }}>
         Before or after I meditate, I look for something outside the noise in my head. So, I built Because Today — a daily app for reflections.
       </p>
-      <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
+      <p style={{ fontSize: 16, lineHeight: 1.7, margin: "0 0 16px" }}>
         Each video lives for one day, and so does the conversation. I also journal the thoughts that surface, so I made a place to keep those reflections for whenever you need them.
       </p>
-      <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
+      <p style={{ fontSize: 16, lineHeight: 1.7, margin: "0 0 16px" }}>
         Questions or comments — <a href="mailto:harrybeeenyc@gmail.com" style={{ color: "#0000EE" }}>harrybeeenyc@gmail.com</a>
       </p>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
+      <p style={{ fontSize: 12, color: "#666" }}>becausebecausebecause.today</p>
     </div>
   );
 }
 
 function Archive({ onNavigate, onLogout }) {
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+      <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="archive" onNavigate={onNavigate} onLogout={onLogout} />
-      <h1 style={{ fontSize: 18, fontWeight: "normal", margin: "24px 0 16px" }}>past reflections</h1>
+      <h1 style={{ fontSize: 19, fontWeight: "normal", margin: "24px 0 16px" }}>past reflections</h1>
       {(() => {
         const now = new Date();
         const start = new Date(2026, 0, 1);
@@ -468,17 +476,17 @@ function Archive({ onNavigate, onLogout }) {
           const date = new Date(start.getTime() + d * 86400000);
           past.push({ v: VIDEOS[idx], date: `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}` });
         }
-        if (past.length === 0) return <p style={{ fontSize: 13, color: "#666" }}>nothing here yet. come back tomorrow.</p>;
+        if (past.length === 0) return <p style={{ fontSize: 14, color: "#444" }}>nothing here yet. come back tomorrow.</p>;
         return past.map((entry, i) => (
-          <div key={i} style={{ marginBottom: 8, fontSize: 14 }}>
-            <span style={{ color: "#999", marginRight: 8 }}>{entry.date}</span>
+          <div key={i} style={{ marginBottom: 8, fontSize: 15 }}>
+            <span style={{ color: "#666", marginRight: 8 }}>{entry.date}</span>
             <span style={{ fontWeight: "bold" }}>{entry.v.title}</span>
-            <span style={{ color: "#666" }}> — {entry.v.person}</span>
+            <span style={{ color: "#444" }}> — {entry.v.person}</span>
           </div>
         ));
       })()}
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
+      <p style={{ fontSize: 12, color: "#666" }}>becausebecausebecause.today</p>
     </div>
   );
 }
@@ -488,30 +496,127 @@ function Donate({ onNavigate, onLogout }) {
   const [thanked, setThanked] = useState(false);
 
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 16, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+      <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="donate" onNavigate={onNavigate} onLogout={onLogout} />
-      <h1 style={{ fontSize: 24, fontWeight: "normal", margin: "24px 0 8px" }}>donate</h1>
-      <p style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>this is a free daily practice. if it means something to you, help keep it going.</p>
+      <h1 style={{ fontSize: 25, fontWeight: "normal", margin: "24px 0 8px" }}>donate</h1>
+      <p style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16 }}>this is a free daily practice. if it means something to you, help keep it going.</p>
       {!thanked ? (
         <>
-          <p style={{ fontSize: 14 }}>
+          <p style={{ fontSize: 15 }}>
             {["$5", "$10", "$25", "$50"].map((amt) => (
               <button key={amt} onClick={() => setAmount(amt)} style={{ ...link, fontWeight: amount === amt ? "bold" : "normal", marginRight: 12, color: amount === amt ? "#000" : "#0000EE" }}>{amt}</button>
             ))}
           </p>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 13 }}>other amount: </label>
-            <input style={{ fontFamily: font, fontSize: 14, padding: "4px 6px", width: 80, border: "1px solid #999" }} value={amount.startsWith("$") ? "" : amount} onChange={(e) => setAmount(e.target.value)} />
+            <label style={{ fontSize: 14 }}>other amount: </label>
+            <input style={{ fontFamily: font, fontSize: 15, padding: "4px 6px", width: 80, border: "1px solid #999" }} value={amount.startsWith("$") ? "" : amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
-          <button onClick={() => { if (amount) setThanked(true); }} style={{ fontFamily: font, fontSize: 14, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>donate</button>
+          <button onClick={() => { if (amount) setThanked(true); }} style={{ fontFamily: font, fontSize: 15, padding: "4px 16px", cursor: "pointer", background: "#eee", border: "1px solid #999" }}>donate</button>
         </>
       ) : (
-        <p style={{ fontSize: 14 }}>thank you. <span style={{ color: "#999" }}>(stripe integration goes here)</span></p>
+        <p style={{ fontSize: 15 }}>thank you. <span style={{ color: "#666" }}>(stripe integration goes here)</span></p>
       )}
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
-      <p style={{ fontSize: 11, color: "#999" }}>becausebecausebecause.today</p>
+      <p style={{ fontSize: 12, color: "#666" }}>becausebecausebecause.today</p>
+    </div>
+  );
+}
+
+function Dashboard({ onNavigate, onLogout }) {
+  const [profiles, setProfiles] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      sb("profiles?select=*&order=created_at.desc"),
+      sb("comments?select=*&order=created_at.desc&limit=100"),
+      sb("journal_entries?select=*&order=created_at.desc&limit=100"),
+    ]).then(([p, c, e]) => {
+      setProfiles(p);
+      setComments(c);
+      setEntries(e);
+    }).catch(err => console.error("Dashboard load error:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const uniqueCommenters = [...new Set(comments.map(c => c.user_email))].length;
+  const uniqueJournalers = [...new Set(entries.map(e => e.user_email))].length;
+  const todayLocal = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; })();
+  const todayComments = comments.filter(c => c.video_date === todayLocal);
+  const todayEntries = entries.filter(e => e.entry_date === todayLocal);
+
+  const stat = { display: "inline-block", textAlign: "center", marginRight: 24, marginBottom: 16 };
+  const statNum = { fontSize: 28, fontWeight: "bold", display: "block" };
+  const statLabel = { fontSize: 12, color: "#666" };
+  const sectionHead = { fontSize: 15, fontWeight: "bold", margin: "24px 0 8px", borderBottom: "1px solid #eee", paddingBottom: 4 };
+  const row = { fontSize: 13, lineHeight: 1.6, padding: "4px 0", borderBottom: "1px solid #f5f5f5" };
+
+  return (
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 640, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+      <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
+      <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontSize: 14 }}>
+        <div style={{ display: "flex", gap: 16 }}>
+          <span onClick={() => onNavigate("daily")} style={{ cursor: "pointer", opacity: 0.5 }}>daily</span>
+          <span style={{ textDecoration: "underline" }}>dashboard</span>
+        </div>
+        <span onClick={onLogout} style={{ cursor: "pointer", opacity: 0.5 }}>logout</span>
+      </div>
+
+      <h1 style={{ fontSize: 25, fontWeight: "normal", margin: "16px 0 16px" }}>dashboard</h1>
+
+      {loading ? <p style={{ fontSize: 15, color: "#444" }}>loading...</p> : (<>
+        <div style={{ marginBottom: 8 }}>
+          <span style={stat}><span style={statNum}>{profiles.length}</span><span style={statLabel}>total users</span></span>
+          <span style={stat}><span style={statNum}>{comments.length}</span><span style={statLabel}>total comments</span></span>
+          <span style={stat}><span style={statNum}>{entries.length}</span><span style={statLabel}>journal entries</span></span>
+          <span style={stat}><span style={statNum}>{todayComments.length}</span><span style={statLabel}>comments today</span></span>
+          <span style={stat}><span style={statNum}>{todayEntries.length}</span><span style={statLabel}>entries today</span></span>
+        </div>
+
+        <p style={sectionHead}>users ({profiles.length})</p>
+        <div style={{ maxHeight: 300, overflowY: "auto" }}>
+          {profiles.map((p, i) => (
+            <div key={i} style={row}>
+              <strong>{p.name || "—"}</strong> &nbsp;
+              <span style={{ color: "#444" }}>{p.email}</span> &nbsp;
+              <span style={{ color: "#999", fontSize: 11 }}>{p.created_at ? new Date(p.created_at).toLocaleDateString() : ""}</span>
+            </div>
+          ))}
+        </div>
+
+        <p style={sectionHead}>recent comments ({comments.length})</p>
+        <div style={{ maxHeight: 300, overflowY: "auto" }}>
+          {comments.slice(0, 50).map((c, i) => (
+            <div key={i} style={row}>
+              <strong>{c.user_name}</strong> &nbsp;
+              <span style={{ color: "#999", fontSize: 11 }}>{c.video_date} · {new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+              <br />
+              <span style={{ color: "#333" }}>{c.comment}</span>
+            </div>
+          ))}
+        </div>
+
+        <p style={sectionHead}>recent journal entries ({entries.length})</p>
+        <div style={{ maxHeight: 300, overflowY: "auto" }}>
+          {entries.slice(0, 50).map((e, i) => (
+            <div key={i} style={row}>
+              <strong>{e.user_email.split("@")[0]}</strong> &nbsp;
+              <span style={{ color: "#999", fontSize: 11 }}>{e.entry_date}</span> &nbsp;
+              <span style={{ color: "#666", fontSize: 11 }}>{e.prompt}</span>
+              <br />
+              <span style={{ color: "#333" }}>{e.entry?.slice(0, 120)}{e.entry?.length > 120 ? "..." : ""}</span>
+            </div>
+          ))}
+        </div>
+      </>)}
+
+      <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
+      <p style={{ fontSize: 12, color: "#666" }}>admin dashboard — becausebecausebecause.today</p>
     </div>
   );
 }
@@ -573,6 +678,7 @@ export default function App() {
   const logout = () => { setUser(null); setSavedNotes([]); localStorage.removeItem("bbb_session"); setPage("daily"); };
 
   if (!user) return <Login onLogin={(email, name) => loginUser({ email, name })} />;
+  if (page === "dashboard" && user.email === "harrybeeenyc@gmail.com") return <Dashboard onNavigate={setPage} onLogout={logout} />;
   if (page === "journal") return <Journal savedNotes={savedNotes} loading={loadingEntries} onNavigate={setPage} onLogout={logout} />;
   if (page === "about") return <About onNavigate={setPage} onLogout={logout} />;
   if (page === "archive") return <Archive onNavigate={setPage} onLogout={logout} />;
