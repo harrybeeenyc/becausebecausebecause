@@ -131,13 +131,45 @@ const VIDEOS = [
   { file: "twilightZone.mp4", person: "Rod Serling", title: "Filed under M for mankind", lines: ["Any state that fails to recognize the worth and dignity of man is obsolete — filed under M for mankind in the Twilight Zone.", "The dignity of people is the only test that matters.", "Today, treat one person like their dignity is the whole point. Because it is."] },
 ];
 
+// Deterministic shuffle that avoids back-to-back same person
+const SHUFFLED = (() => {
+  // Seeded random for deterministic order
+  const seed = 42;
+  let s = seed;
+  const rand = () => { s = (s * 16807 + 0) % 2147483647; return s / 2147483647; };
+
+  // First, shuffle all videos
+  const arr = [...VIDEOS];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+
+  // Then spread out same-person entries so they don't appear back-to-back
+  for (let pass = 0; pass < 5; pass++) {
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].person === arr[i - 1].person) {
+        // Find the nearest different-person entry to swap with
+        for (let j = i + 1; j < arr.length; j++) {
+          if (arr[j].person !== arr[i].person && arr[j].person !== arr[i - 1].person &&
+              (i + 1 >= arr.length || arr[j].person !== arr[i + 1]?.person)) {
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+            break;
+          }
+        }
+      }
+    }
+  }
+  return arr;
+})();
+
 // get today's video based on date
 function getTodayContent() {
   const now = new Date();
   const start = new Date(2026, 0, 1); // Jan 1, 2026 as epoch
   const daysSinceStart = Math.floor((now - start) / 86400000);
-  const index = ((daysSinceStart % VIDEOS.length) + VIDEOS.length) % VIDEOS.length;
-  const video = VIDEOS[index];
+  const index = ((daysSinceStart % SHUFFLED.length) + SHUFFLED.length) % SHUFFLED.length;
+  const video = SHUFFLED[index];
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -409,7 +441,7 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
 
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <p style={{ fontSize: 12, color: "#666", margin: 0 }}>becausebecausebecause.today — {VIDEOS.length} videos in rotation</p>
+        <p style={{ fontSize: 12, color: "#666", margin: 0 }}>becausebecausebecause.today — {SHUFFLED.length} videos in rotation</p>
         {user?.email === "harrybeeenyc@gmail.com" && (
           <span onClick={() => onNavigate("dashboard")} style={{ fontSize: 11, color: "#999", cursor: "pointer" }}>dashboard</span>
         )}
@@ -479,9 +511,9 @@ function Archive({ onNavigate, onLogout }) {
         const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         const past = [];
         for (let d = daysSinceStart - 1; d >= 0; d--) {
-          const idx = ((d % VIDEOS.length) + VIDEOS.length) % VIDEOS.length;
+          const idx = ((d % SHUFFLED.length) + SHUFFLED.length) % SHUFFLED.length;
           const date = new Date(start.getTime() + d * 86400000);
-          past.push({ v: VIDEOS[idx], date: `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}` });
+          past.push({ v: SHUFFLED[idx], date: `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}` });
         }
         if (past.length === 0) return <p style={{ fontSize: 14, color: "#444" }}>nothing here yet. come back tomorrow.</p>;
         return past.map((entry, i) => (
@@ -597,15 +629,27 @@ function Dashboard({ onNavigate, onLogout }) {
         </div>
 
         <p style={sectionHead}>recent comments ({comments.length})</p>
-        <div style={{ maxHeight: 300, overflowY: "auto" }}>
-          {comments.slice(0, 50).map((c, i) => (
-            <div key={i} style={row}>
-              <strong>{c.user_name}</strong> &nbsp;
-              <span style={{ color: "#999", fontSize: 11 }}>{c.video_date} · {new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
-              <br />
-              <span style={{ color: "#333" }}>{c.comment}</span>
-            </div>
-          ))}
+        <div style={{ maxHeight: 400, overflowY: "auto" }}>
+          {comments.slice(0, 50).map((c, i) => {
+            // figure out which video was showing on the comment's date
+            const cDate = new Date(c.created_at);
+            const start = new Date(2026, 0, 1);
+            const daysSince = Math.floor((cDate - start) / 86400000);
+            const vidIdx = ((daysSince % SHUFFLED.length) + SHUFFLED.length) % SHUFFLED.length;
+            const vid = SHUFFLED[vidIdx];
+            return (
+              <div key={i} style={row}>
+                <strong>{c.user_name}</strong> &nbsp;
+                <span style={{ color: "#999", fontSize: 11 }}>
+                  {new Date(c.created_at).toLocaleDateString()} · {new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                </span>
+                <br />
+                <span style={{ color: "#888", fontSize: 11 }}>on: {vid.person} — {vid.title}</span>
+                <br />
+                <span style={{ color: "#333" }}>{c.comment}</span>
+              </div>
+            );
+          })}
         </div>
 
         <p style={sectionHead}>recent journal entries ({entries.length})</p>
@@ -619,6 +663,40 @@ function Dashboard({ onNavigate, onLogout }) {
               <span style={{ color: "#333" }}>{e.entry?.slice(0, 120)}{e.entry?.length > 120 ? "..." : ""}</span>
             </div>
           ))}
+        </div>
+      </>)}
+
+        <p style={sectionHead}>video entries — rotation order ({SHUFFLED.length})</p>
+        <p style={{ fontSize: 12, color: "#666", margin: "0 0 12px" }}>This is the order videos rotate through. Each entry shows the current copy and the original transcript.</p>
+        <div style={{ maxHeight: 500, overflowY: "auto" }}>
+          {SHUFFLED.map((v, i) => {
+            const orig = VIDEOS.find(o => o.file === v.file);
+            return (
+              <div key={i} style={{ ...row, padding: "8px 0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span>
+                    <span style={{ color: "#999", fontSize: 11, marginRight: 8 }}>#{i + 1}</span>
+                    <strong>{v.person}</strong>
+                    <span style={{ color: "#444" }}> — {v.title}</span>
+                  </span>
+                  <span style={{ fontSize: 10, color: "#bbb" }}>{v.file.slice(0, 30)}</span>
+                </div>
+                <div style={{ marginTop: 4, fontSize: 12, lineHeight: 1.5 }}>
+                  {v.lines.map((line, li) => (
+                    <p key={li} style={{ margin: "2px 0", color: "#333" }}>{line}</p>
+                  ))}
+                </div>
+                {orig && orig.lines.join() !== v.lines.join() && (
+                  <details style={{ marginTop: 4, fontSize: 11, color: "#999" }}>
+                    <summary style={{ cursor: "pointer" }}>original transcript</summary>
+                    {orig.lines.map((line, li) => (
+                      <p key={li} style={{ margin: "2px 0" }}>{line}</p>
+                    ))}
+                  </details>
+                )}
+              </div>
+            );
+          })}
         </div>
       </>)}
 
