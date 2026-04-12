@@ -278,8 +278,21 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   }, []);
 
   useEffect(() => {
+    // Fetch comments matching today's local date, and also filter by created_at
+    // to handle old comments that were stored with UTC dates
+    const localStart = new Date();
+    localStart.setHours(0, 0, 0, 0);
+    const localEnd = new Date();
+    localEnd.setHours(23, 59, 59, 999);
     sb(`comments?video_date=eq.${todayDate}&order=created_at.asc&select=*`)
-      .then(setComments)
+      .then(all => {
+        // Only keep comments actually created during today's local calendar day
+        const filtered = all.filter(c => {
+          const t = new Date(c.created_at);
+          return t >= localStart && t <= localEnd;
+        });
+        setComments(filtered);
+      })
       .catch(err => console.error("Failed to load comments:", err));
   }, [todayDate]);
 
