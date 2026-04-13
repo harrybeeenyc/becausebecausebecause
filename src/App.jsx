@@ -17,7 +17,7 @@ const sb = (path, opts = {}) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
 
 // ═══════════════════════════════════════════════════════════════
 // BECAUSE BECAUSE BECAUSE — Daily Consciousness & Reflection App
-// Full video content library embedded (90 videos)
+// Full video content library embedded (107 videos)
 // One video per day, rotates by date
 // ═══════════════════════════════════════════════════════════════
 
@@ -297,12 +297,12 @@ function Nav({ current, onNavigate, onLogout }) {
 
 function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   const today = useMemo(getTodayContent, []);
-  const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [shared, setShared] = useState("");
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [postingComment, setPostingComment] = useState(false);
+  const [commentError, setCommentError] = useState("");
 
   const todayDate = useMemo(() => {
     const now = new Date();
@@ -310,31 +310,21 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   }, []);
 
   useEffect(() => {
-    // Load comments for this specific video (by file name), not just today's date
-    const videoFile = today.file;
-    sb(`comments?video_file=eq.${encodeURIComponent(videoFile)}&order=created_at.asc&select=*`)
+    // Load comments for today's date
+    sb(`comments?video_date=eq.${todayDate}&order=created_at.asc&select=*`)
       .then(setComments)
-      .catch(err => {
-        // Fallback: if video_file column doesn't exist yet, load by date range
-        const startLocal = new Date();
-        startLocal.setHours(0, 0, 0, 0);
-        const endLocal = new Date();
-        endLocal.setHours(23, 59, 59, 999);
-        sb(`comments?created_at=gte.${startLocal.toISOString()}&created_at=lte.${endLocal.toISOString()}&order=created_at.asc&select=*`)
-          .then(setComments)
-          .catch(err2 => console.error("Failed to load comments:", err2));
-      });
-  }, [today.file]);
+      .catch(err => console.error("Failed to load comments:", err));
+  }, [todayDate]);
 
   const handlePostComment = async () => {
     if (!newComment.trim() || !user?.email) return;
     setPostingComment(true);
+    setCommentError("");
     try {
       const created = await sb("comments", {
         method: "POST",
         body: JSON.stringify({
           video_date: todayDate,
-          video_file: today.file,
           user_email: user.email,
           user_name: user.name || user.email.split("@")[0],
           comment: newComment.trim(),
@@ -344,6 +334,7 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
       setNewComment("");
     } catch (err) {
       console.error("Failed to post comment:", err);
+      setCommentError("couldn't post. try again.");
     }
     setPostingComment(false);
   };
@@ -416,6 +407,7 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
             <p style={{ fontSize: 15, lineHeight: 1.5, margin: "4px 0 0", whiteSpace: "pre-wrap" }}>{c.comment}</p>
           </div>
         ))}
+        {commentError && <p style={{ fontSize: 13, color: "red", margin: "0 0 4px" }}>{commentError}</p>}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <input
             type="text"
