@@ -568,12 +568,13 @@ function Dashboard({ onNavigate, onLogout }) {
   const [comments, setComments] = useState([]);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("users");
 
   useEffect(() => {
     Promise.all([
       sb("profiles?select=*&order=created_at.desc"),
-      sb("comments?select=*&order=created_at.desc&limit=100"),
-      sb("journal_entries?select=*&order=created_at.desc&limit=100"),
+      sb("comments?select=*&order=created_at.desc&limit=200"),
+      sb("journal_entries?select=*&order=created_at.desc&limit=200"),
     ]).then(([p, c, e]) => {
       setProfiles(p);
       setComments(c);
@@ -582,20 +583,24 @@ function Dashboard({ onNavigate, onLogout }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const uniqueCommenters = [...new Set(comments.map(c => c.user_email))].length;
-  const uniqueJournalers = [...new Set(entries.map(e => e.user_email))].length;
-  const todayLocal = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; })();
-  const todayComments = comments.filter(c => c.video_date === todayLocal);
-  const todayEntries = entries.filter(e => e.entry_date === todayLocal);
+  // helper: get which video was showing on a given date
+  const getVideoForDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const start = new Date(2026, 0, 1);
+    const daysSince = Math.floor((d - start) / 86400000);
+    const vidIdx = ((daysSince % SHUFFLED.length) + SHUFFLED.length) % SHUFFLED.length;
+    return SHUFFLED[vidIdx];
+  };
 
   const stat = { display: "inline-block", textAlign: "center", marginRight: 24, marginBottom: 16 };
   const statNum = { fontSize: 28, fontWeight: "bold", display: "block" };
   const statLabel = { fontSize: 12, color: "#666" };
   const sectionHead = { fontSize: 15, fontWeight: "bold", margin: "24px 0 8px", borderBottom: "1px solid #eee", paddingBottom: 4 };
   const row = { fontSize: 13, lineHeight: 1.6, padding: "4px 0", borderBottom: "1px solid #f5f5f5" };
+  const tabStyle = (active) => ({ cursor: "pointer", fontSize: 14, padding: "8px 16px", borderBottom: active ? "2px solid #111" : "2px solid transparent", fontWeight: active ? "bold" : "normal", color: active ? "#111" : "#999" });
 
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 640, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 700, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
       <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontSize: 14 }}>
@@ -613,91 +618,140 @@ function Dashboard({ onNavigate, onLogout }) {
           <span style={stat}><span style={statNum}>{profiles.length}</span><span style={statLabel}>total users</span></span>
           <span style={stat}><span style={statNum}>{comments.length}</span><span style={statLabel}>total comments</span></span>
           <span style={stat}><span style={statNum}>{entries.length}</span><span style={statLabel}>journal entries</span></span>
-          <span style={stat}><span style={statNum}>{todayComments.length}</span><span style={statLabel}>comments today</span></span>
-          <span style={stat}><span style={statNum}>{todayEntries.length}</span><span style={statLabel}>entries today</span></span>
         </div>
 
-        <p style={sectionHead}>users ({profiles.length})</p>
-        <div style={{ maxHeight: 300, overflowY: "auto" }}>
-          {profiles.map((p, i) => (
-            <div key={i} style={row}>
-              <strong>{p.name || "—"}</strong> &nbsp;
-              <span style={{ color: "#444" }}>{p.email}</span> &nbsp;
-              <span style={{ color: "#999", fontSize: 11 }}>{p.created_at ? new Date(p.created_at).toLocaleDateString() : ""}</span>
-            </div>
-          ))}
+        {/* ── TAB SWITCHER ── */}
+        <div style={{ display: "flex", gap: 0, borderBottom: "1px solid #ddd", marginBottom: 16 }}>
+          <span style={tabStyle(tab === "users")} onClick={() => setTab("users")}>users</span>
+          <span style={tabStyle(tab === "posts")} onClick={() => setTab("posts")}>posts</span>
         </div>
 
-        <p style={sectionHead}>recent comments ({comments.length})</p>
-        <div style={{ maxHeight: 400, overflowY: "auto" }}>
-          {comments.slice(0, 50).map((c, i) => {
-            // figure out which video was showing on the comment's date
-            const cDate = new Date(c.created_at);
-            const start = new Date(2026, 0, 1);
-            const daysSince = Math.floor((cDate - start) / 86400000);
-            const vidIdx = ((daysSince % SHUFFLED.length) + SHUFFLED.length) % SHUFFLED.length;
-            const vid = SHUFFLED[vidIdx];
-            return (
+        {/* ══════════════════════════════════════════════ */}
+        {/* SECTION 1: USERS — activity, comments on posts */}
+        {/* ══════════════════════════════════════════════ */}
+        {tab === "users" && (<>
+          <p style={sectionHead}>users ({profiles.length})</p>
+          <div style={{ maxHeight: 250, overflowY: "auto" }}>
+            {profiles.map((p, i) => (
               <div key={i} style={row}>
-                <strong>{c.user_name}</strong> &nbsp;
-                <span style={{ color: "#999", fontSize: 11 }}>
-                  {new Date(c.created_at).toLocaleDateString()} · {new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                </span>
-                <br />
-                <span style={{ color: "#888", fontSize: 11 }}>on: {vid.person} — {vid.title}</span>
-                <br />
-                <span style={{ color: "#333" }}>{c.comment}</span>
+                <strong>{p.name || "—"}</strong> &nbsp;
+                <span style={{ color: "#444" }}>{p.email}</span> &nbsp;
+                <span style={{ color: "#999", fontSize: 11 }}>{p.created_at ? new Date(p.created_at).toLocaleDateString() : ""}</span>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        <p style={sectionHead}>recent journal entries ({entries.length})</p>
-        <div style={{ maxHeight: 300, overflowY: "auto" }}>
-          {entries.slice(0, 50).map((e, i) => (
-            <div key={i} style={row}>
-              <strong>{e.user_email.split("@")[0]}</strong> &nbsp;
-              <span style={{ color: "#999", fontSize: 11 }}>{e.entry_date}</span> &nbsp;
-              <span style={{ color: "#666", fontSize: 11 }}>{e.prompt}</span>
-              <br />
-              <span style={{ color: "#333" }}>{e.entry?.slice(0, 120)}{e.entry?.length > 120 ? "..." : ""}</span>
-            </div>
-          ))}
-        </div>
-      </>)}
+          <p style={sectionHead}>comments ({comments.length})</p>
+          <p style={{ fontSize: 11, color: "#888", margin: "0 0 8px" }}>each comment shows which post it was left on</p>
+          <div style={{ maxHeight: 500, overflowY: "auto" }}>
+            {comments.map((c, i) => {
+              const vid = getVideoForDate(c.created_at);
+              return (
+                <div key={i} style={{ ...row, padding: "8px 0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span>
+                      <strong>{c.user_name}</strong> &nbsp;
+                      <span style={{ color: "#999", fontSize: 11 }}>
+                        {new Date(c.created_at).toLocaleDateString()} · {new Date(c.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                      </span>
+                    </span>
+                  </div>
+                  <div style={{ background: "#f7f7f7", borderRadius: 4, padding: "6px 8px", margin: "4px 0", fontSize: 11, color: "#666" }}>
+                    <strong style={{ color: "#444" }}>{vid.person}</strong> — {vid.title}
+                    <br />
+                    <span style={{ fontSize: 10, color: "#aaa" }}>{vid.lines[0]?.slice(0, 80)}...</span>
+                  </div>
+                  <span style={{ color: "#222" }}>{c.comment}</span>
+                </div>
+              );
+            })}
+          </div>
 
-        <p style={sectionHead}>video entries — rotation order ({SHUFFLED.length})</p>
-        <p style={{ fontSize: 12, color: "#666", margin: "0 0 12px" }}>This is the order videos rotate through. Each entry shows the current copy and the original transcript.</p>
-        <div style={{ maxHeight: 500, overflowY: "auto" }}>
-          {SHUFFLED.map((v, i) => {
-            const orig = VIDEOS.find(o => o.file === v.file);
-            return (
-              <div key={i} style={{ ...row, padding: "8px 0" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span>
-                    <span style={{ color: "#999", fontSize: 11, marginRight: 8 }}>#{i + 1}</span>
-                    <strong>{v.person}</strong>
-                    <span style={{ color: "#444" }}> — {v.title}</span>
-                  </span>
-                  <span style={{ fontSize: 10, color: "#bbb" }}>{v.file.slice(0, 30)}</span>
+          <p style={sectionHead}>journal entries ({entries.length})</p>
+          <div style={{ maxHeight: 400, overflowY: "auto" }}>
+            {entries.map((e, i) => {
+              const vid = getVideoForDate(e.created_at || e.entry_date);
+              return (
+                <div key={i} style={{ ...row, padding: "8px 0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span>
+                      <strong>{e.user_email?.split("@")[0]}</strong> &nbsp;
+                      <span style={{ color: "#999", fontSize: 11 }}>{e.entry_date}</span>
+                    </span>
+                  </div>
+                  <div style={{ background: "#f7f7f7", borderRadius: 4, padding: "6px 8px", margin: "4px 0", fontSize: 11, color: "#666" }}>
+                    <strong style={{ color: "#444" }}>{vid.person}</strong> — {vid.title}
+                  </div>
+                  {e.prompt && <p style={{ fontSize: 11, color: "#888", margin: "2px 0" }}>prompt: {e.prompt}</p>}
+                  <span style={{ color: "#222" }}>{e.entry?.slice(0, 200)}{e.entry?.length > 200 ? "..." : ""}</span>
                 </div>
-                <div style={{ marginTop: 4, fontSize: 12, lineHeight: 1.5 }}>
-                  {v.lines.map((line, li) => (
-                    <p key={li} style={{ margin: "2px 0", color: "#333" }}>{line}</p>
-                  ))}
-                </div>
-                {orig && orig.lines.join() !== v.lines.join() && (
-                  <details style={{ marginTop: 4, fontSize: 11, color: "#999" }}>
-                    <summary style={{ cursor: "pointer" }}>original transcript</summary>
-                    {orig.lines.map((line, li) => (
-                      <p key={li} style={{ margin: "2px 0" }}>{line}</p>
+              );
+            })}
+          </div>
+        </>)}
+
+        {/* ══════════════════════════════════════════════ */}
+        {/* SECTION 2: POSTS — all entries as users see them */}
+        {/* ══════════════════════════════════════════════ */}
+        {tab === "posts" && (<>
+          <p style={sectionHead}>all posts — rotation order ({SHUFFLED.length})</p>
+          <p style={{ fontSize: 11, color: "#888", margin: "0 0 12px" }}>posts in the order they rotate daily. each shows the copy users see and the original transcript.</p>
+          <div>
+            {SHUFFLED.map((v, i) => {
+              // count comments on this post
+              const postComments = comments.filter(c => {
+                const vid = getVideoForDate(c.created_at);
+                return vid.file === v.file;
+              });
+              return (
+                <div key={i} style={{ padding: "12px 0", borderBottom: "1px solid #eee" }}>
+                  {/* post header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span>
+                      <span style={{ color: "#999", fontSize: 11, marginRight: 8 }}>#{i + 1}</span>
+                      <strong style={{ fontSize: 14 }}>{v.person}</strong>
+                      <span style={{ color: "#444", fontSize: 14 }}> — {v.title}</span>
+                    </span>
+                    {postComments.length > 0 && (
+                      <span style={{ fontSize: 10, color: "#888", background: "#f0f0f0", padding: "2px 6px", borderRadius: 8 }}>
+                        {postComments.length} comment{postComments.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* the copy users see */}
+                  <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.7, color: "#222" }}>
+                    {v.lines.map((line, li) => (
+                      <p key={li} style={{ margin: li === 0 ? "0 0 8px" : "0 0 4px", color: li === 1 ? "#555" : "#222", fontStyle: li === 1 ? "italic" : "normal" }}>{line}</p>
                     ))}
+                  </div>
+
+                  {/* transcript / original */}
+                  <details style={{ marginTop: 6, fontSize: 11, color: "#999" }}>
+                    <summary style={{ cursor: "pointer" }}>transcript / file info</summary>
+                    <p style={{ margin: "4px 0", fontSize: 10, color: "#bbb" }}>file: {v.file}</p>
+                    <p style={{ margin: "4px 0", color: "#888" }}>This is the video entry as it appears in rotation. The copy above is what users read alongside the video.</p>
                   </details>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                  {/* comments on this post */}
+                  {postComments.length > 0 && (
+                    <details style={{ marginTop: 6, fontSize: 11, color: "#999" }}>
+                      <summary style={{ cursor: "pointer" }}>comments ({postComments.length})</summary>
+                      {postComments.map((c, ci) => (
+                        <div key={ci} style={{ padding: "4px 0", borderBottom: "1px solid #f8f8f8" }}>
+                          <strong style={{ color: "#444" }}>{c.user_name}</strong>
+                          <span style={{ color: "#bbb", marginLeft: 6 }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                          <br />
+                          <span style={{ color: "#555" }}>{c.comment}</span>
+                        </div>
+                      ))}
+                    </details>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>)}
       </>)}
 
       <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "32px 0 8px" }} />
