@@ -163,16 +163,9 @@ const SHUFFLED = (() => {
   return arr;
 })();
 
-// Get current date in Hawaii time (HST) so posts don't flip early for US users
-function getHawaiiDate() {
-  const now = new Date();
-  const hi = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Honolulu" }));
-  return hi;
-}
-
-// get today's video based on date (Hawaii time)
+// get today's video based on viewer's local date
 function getTodayContent() {
-  const now = getHawaiiDate();
+  const now = new Date();
   const start = new Date(2026, 0, 1); // Jan 1, 2026 as epoch
   const daysSinceStart = Math.floor((now - start) / 86400000);
   const index = ((daysSinceStart % SHUFFLED.length) + SHUFFLED.length) % SHUFFLED.length;
