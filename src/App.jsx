@@ -305,7 +305,7 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   const [postingComment, setPostingComment] = useState(false);
 
   const todayDate = useMemo(() => {
-    const now = getHawaiiDate();
+    const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   }, []);
 
@@ -510,7 +510,7 @@ function Archive({ onNavigate, onLogout }) {
       <Nav current="archive" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 19, fontWeight: "normal", margin: "24px 0 16px" }}>past reflections</h1>
       {(() => {
-        const now = getHawaiiDate();
+        const now = new Date();
         const start = new Date(2026, 0, 1);
         const daysSinceStart = Math.floor((now - start) / 86400000);
         const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
