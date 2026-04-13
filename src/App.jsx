@@ -163,9 +163,16 @@ const SHUFFLED = (() => {
   return arr;
 })();
 
-// get today's video based on date
-function getTodayContent() {
+// Get current date in Hawaii time (HST) so posts don't flip early for US users
+function getHawaiiDate() {
   const now = new Date();
+  const hi = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Honolulu" }));
+  return hi;
+}
+
+// get today's video based on date (Hawaii time)
+function getTodayContent() {
+  const now = getHawaiiDate();
   const start = new Date(2026, 0, 1); // Jan 1, 2026 as epoch
   const daysSinceStart = Math.floor((now - start) / 86400000);
   const index = ((daysSinceStart % SHUFFLED.length) + SHUFFLED.length) % SHUFFLED.length;
@@ -305,22 +312,26 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   const [postingComment, setPostingComment] = useState(false);
 
   const todayDate = useMemo(() => {
-    const now = new Date();
+    const now = getHawaiiDate();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   }, []);
 
   useEffect(() => {
-    // Query by created_at within today's local day (converted to UTC for Supabase)
-    const startLocal = new Date();
-    startLocal.setHours(0, 0, 0, 0);
-    const endLocal = new Date();
-    endLocal.setHours(23, 59, 59, 999);
-    const startUTC = startLocal.toISOString();
-    const endUTC = endLocal.toISOString();
-    sb(`comments?created_at=gte.${startUTC}&created_at=lte.${endUTC}&order=created_at.asc&select=*`)
+    // Load comments for this specific video (by file name), not just today's date
+    const videoFile = today.file;
+    sb(`comments?video_file=eq.${encodeURIComponent(videoFile)}&order=created_at.asc&select=*`)
       .then(setComments)
-      .catch(err => console.error("Failed to load comments:", err));
-  }, [todayDate]);
+      .catch(err => {
+        // Fallback: if video_file column doesn't exist yet, load by date range
+        const startLocal = new Date();
+        startLocal.setHours(0, 0, 0, 0);
+        const endLocal = new Date();
+        endLocal.setHours(23, 59, 59, 999);
+        sb(`comments?created_at=gte.${startLocal.toISOString()}&created_at=lte.${endLocal.toISOString()}&order=created_at.asc&select=*`)
+          .then(setComments)
+          .catch(err2 => console.error("Failed to load comments:", err2));
+      });
+  }, [today.file]);
 
   const handlePostComment = async () => {
     if (!newComment.trim() || !user?.email) return;
@@ -330,6 +341,7 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
         method: "POST",
         body: JSON.stringify({
           video_date: todayDate,
+          video_file: today.file,
           user_email: user.email,
           user_name: user.name || user.email.split("@")[0],
           comment: newComment.trim(),
@@ -370,7 +382,7 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
   };
 
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px 24px 48px auto", padding: "0 16px", color: "#111" }}>
       <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="daily" onNavigate={onNavigate} onLogout={onLogout} />
@@ -452,7 +464,7 @@ function Daily({ user, notes, setNotes, onSave, onNavigate, onLogout }) {
 
 function Journal({ savedNotes, loading, onNavigate, onLogout }) {
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px 24px 48px auto", padding: "0 16px", color: "#111" }}>
       <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="journal" onNavigate={onNavigate} onLogout={onLogout} />
@@ -477,7 +489,7 @@ function Journal({ savedNotes, loading, onNavigate, onLogout }) {
 
 function About({ onNavigate, onLogout }) {
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px 24px 48px auto", padding: "0 16px", color: "#111" }}>
       <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="about" onNavigate={onNavigate} onLogout={onLogout} />
@@ -499,13 +511,13 @@ function About({ onNavigate, onLogout }) {
 
 function Archive({ onNavigate, onLogout }) {
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px 24px 48px auto", padding: "0 16px", color: "#111" }}>
       <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="archive" onNavigate={onNavigate} onLogout={onLogout} />
       <h1 style={{ fontSize: 19, fontWeight: "normal", margin: "24px 0 16px" }}>past reflections</h1>
       {(() => {
-        const now = new Date();
+        const now = getHawaiiDate();
         const start = new Date(2026, 0, 1);
         const daysSinceStart = Math.floor((now - start) / 86400000);
         const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -535,7 +547,7 @@ function Donate({ onNavigate, onLogout }) {
   const [thanked, setThanked] = useState(false);
 
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 540, margin: "24px 24px 48px auto", padding: "0 16px", color: "#111" }}>
       <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <Nav current="donate" onNavigate={onNavigate} onLogout={onLogout} />
@@ -600,7 +612,7 @@ function Dashboard({ onNavigate, onLogout }) {
   const tabStyle = (active) => ({ cursor: "pointer", fontSize: 14, padding: "8px 16px", borderBottom: active ? "2px solid #111" : "2px solid transparent", fontWeight: active ? "bold" : "normal", color: active ? "#111" : "#999" });
 
   return (
-    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 700, margin: "24px auto 48px", padding: "0 16px", color: "#111" }}>
+    <div className="bbb-page" style={{ fontFamily: font, maxWidth: 700, margin: "24px 24px 48px auto", padding: "0 16px", color: "#111" }}>
       <h2 style={{ fontSize: 17, fontWeight: "normal", marginBottom: 4 }}>becausebecausebecause.today</h2>
       <hr style={{ border: "none", borderTop: "1px solid #ccc", marginBottom: 8 }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, fontSize: 14 }}>
